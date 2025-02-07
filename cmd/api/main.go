@@ -2,40 +2,48 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nodebytehosting/syscapture/internal/config"
 	"github.com/nodebytehosting/syscapture/internal/handler"
+	"github.com/nodebytehosting/syscapture/internal/logger"
 	"github.com/nodebytehosting/syscapture/internal/middleware"
 	"github.com/sirupsen/logrus"
 )
 
 var appConfig *config.Config
+var log *logrus.Logger
 
-func init() {
-	var err error
-	appConfig, err = config.NewConfig(
-		os.Getenv("PORT"),
-		os.Getenv("API_SECRET"),
-		os.Getenv("ALLOW_PUBLIC_API"),
-		os.Getenv("ALLOWED_ORIGINS"),
-	)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
-	handler.InitWebSocket(appConfig)
-}
+var Version = "develop" // This will be set during compile time using go build ldflags
 
 func main() {
-	r := gin.Default()
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
+	showVersion := flag.Bool("version", false, "Display the version of the capture")
+	flag.Parse()
 
+	// Check if the version flag is provided
+	if *showVersion {
+		fmt.Printf("Capture version: %s\n", Version)
+		os.Exit(0)
+	}
+
+	appConfig = config.NewConfig(
+		os.Getenv("PORT"),
+		os.Getenv("API_SECRET"),
+		os.Getenv("DEBUG"),
+	)
+
+	log = logger.NewLogger(appConfig.Debug)
+	handler.InitWebSocket(appConfig)
+
+	// Initialize the Gin with default middlewares
+	r := gin.Default()
 	apiV1 := r.Group("/api/v1")
 	apiV1.Use(middleware.AuthRequired(appConfig.ApiSecret))
 
@@ -53,32 +61,34 @@ func main() {
 	apiV1.GET("/ws/metrics", handler.WebSocket)
 
 	server := &http.Server{
-		Addr:    ":" + appConfig.Port,
-		Handler: r,
+		Addr:              ":" + appConfig.Port,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	// Start server in a goroutine
-	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logrus.Fatalf("listen: %s\n", err)
-		}
-	}()
+	go serve(server)
 
-	// Graceful shutdown
-	gracefulShutdown(server)
+	if err := gracefulShutdown(server, 5*time.Second); err != nil {
+		log.Fatalln("graceful shutdown error", err)
+	}
 }
 
-func gracefulShutdown(server *http.Server) {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
-	logrus.Println("Shutting down server...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := server.Shutdown(ctx); err != nil {
-		logrus.Fatalf("Server forced to shutdown: %s", err)
+func serve(srv *http.Server) {
+	srvErr := srv.ListenAndServe()
+	if srvErr != nil && srvErr != http.ErrServerClosed {
+		log.Fatalf("listen error: %s\n", srvErr)
 	}
+}
 
-	logrus.Println("Server exiting")
+func gracefulShutdown(srv *http.Server, timeout time.Duration) error {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	sig := <-quit
+	log.Printf("signal received: %v", sig)
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	return srv.Shutdown(ctx)
 }

@@ -1,58 +1,47 @@
 package config
 
 import (
-	"errors"
-	"fmt"
+	"log"
 	"strconv"
 )
 
 type Config struct {
-	Port           string
-	ApiSecret      string
-	AllowPublicApi bool
-	AllowedOrigins string
+	Port      string
+	ApiSecret string
+	Debug     bool
 }
 
 const (
-	defaultPort           = "42000"
-	defaultAllowedOrigins = "*"
+	defaultPort = "42000"
 )
 
-func NewConfig(port string, apiSecret string, allowPublicApi string, allowedOrigins string) (*Config, error) {
-	// Set default port if not provided
+func NewConfig(port string, apiSecret string, debug string) *Config {
 	if port == "" {
 		port = defaultPort
 	}
 
-	// Set default allowed origins if not provided
-	if allowedOrigins == "" {
-		allowedOrigins = defaultAllowedOrigins
-	}
-
-	// Parse AllowPublicApi
-	isPublicApiAllowed, err := strconv.ParseBool(allowPublicApi)
-	if err != nil && allowPublicApi != "" {
-		return nil, fmt.Errorf("invalid bool value for AllowPublicApi: %v", err)
+	// Parse Debug
+	isDebug, err := strconv.ParseBool(debug)
+	if err != nil && debug != "" {
+		log.Fatalf("invalid bool value for Debug: %v", err)
 	}
 
 	// Validate required fields
 	if apiSecret == "" {
-		return nil, errors.New("API_SECRET is required")
+		log.Fatalln("API_SECRET environment variable is required for security purposes. Please set it before starting the server.")
 	}
 
 	return &Config{
-		Port:           port,
-		ApiSecret:      apiSecret,
-		AllowPublicApi: isPublicApiAllowed,
-		AllowedOrigins: allowedOrigins,
-	}, nil
+		Port:      port,
+		ApiSecret: apiSecret,
+		Debug:     isDebug,
+	}
 }
 
 func Default() *Config {
 	return &Config{
-		Port:           defaultPort,
-		ApiSecret:      "",
-		AllowPublicApi: false,
-		AllowedOrigins: defaultAllowedOrigins,
+		Port:      defaultPort,
+		ApiSecret: "",
+		Debug:     false,
 	}
 }
