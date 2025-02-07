@@ -39,12 +39,6 @@
                     <p id="diskUsage" class="text-4xl font-bold text-red-400">--%</p>
                 </div>
             </div>
-            <div class="mt-6">
-                <h3 class="text-2xl font-semibold mb-4">Usage Over Time</h3>
-                <div class="relative h-72">
-                    <canvas id="usageChart"></canvas>
-                </div>
-            </div>
         </section>
         <section id="features" class="tab-content hidden">
             <h2 class="text-3xl font-semibold mb-4">Features</h2>
@@ -78,26 +72,20 @@
         }
 
         async function fetchMetrics() {
-            const data = { cpu: 35, memory: 62, disk: 48 };
-            document.getElementById('cpuUsage').textContent = `${data.cpu}%`;
-            document.getElementById('memoryUsage').textContent = `${data.memory}%`;
-            document.getElementById('diskUsage').textContent = `${data.disk}%`;
+            try {
+                const response = await fetch('https://syscapture.nodebyte.host/api/v1/metrics');
+                if (!response.ok) throw new Error('Failed to fetch metrics');
+                const data = await response.json();
+                
+                document.getElementById('cpuUsage').textContent = `${data.cpu.usage}%`;
+                document.getElementById('memoryUsage').textContent = `${data.memory.usage}%`;
+                document.getElementById('diskUsage').textContent = `${data.disk.usage}%`;
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+            }
         }
         setInterval(fetchMetrics, 5000);
-
-        const ctx = document.getElementById('usageChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['10s', '20s', '30s', '40s', '50s', '60s'],
-                datasets: [
-                    { label: 'CPU %', data: [30, 40, 35, 50, 45, 60], borderColor: 'blue', fill: false },
-                    { label: 'Memory %', data: [50, 52, 54, 53, 55, 58], borderColor: 'green', fill: false },
-                    { label: 'Disk %', data: [40, 42, 38, 41, 39, 43], borderColor: 'red', fill: false }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
+        fetchMetrics();
     </script>
 </body>
 </html>
