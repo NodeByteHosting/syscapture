@@ -41,7 +41,9 @@
             </div>
             <div class="mt-6">
                 <h3 class="text-2xl font-semibold mb-4">Usage Over Time</h3>
-                <canvas id="usageChart"></canvas>
+                <div class="relative" style="height: 300px;">
+                    <canvas id="usageChart"></canvas>
+                </div>
             </div>
         </section>
         <section id="features" class="tab-content hidden">
@@ -94,7 +96,7 @@
                     { label: 'Disk %', data: [40, 42, 38, 41, 39, 43], borderColor: 'red', fill: false }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { responsive: true, maintainAspectRatio: true }
         });
     </script>
 </body>
