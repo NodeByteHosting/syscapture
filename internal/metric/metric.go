@@ -1,14 +1,16 @@
 package metric
 
 import (
+	"fmt"
+
 	"github.com/sirupsen/logrus"
 )
 
 type ApiResponse struct {
-	Cpu    CpuData     `json:"cpu"`
-	Memory MemoryData  `json:"memory"`
+	Cpu    *CpuData    `json:"cpu"`
+	Memory *MemoryData `json:"memory"`
 	Disk   []*DiskData `json:"disk"`
-	Host   HostData    `json:"host"`
+	Host   *HostData   `json:"host"`
 }
 
 type CpuData struct {
@@ -51,32 +53,32 @@ type HostData struct {
 func GetAllSystemMetrics() (*ApiResponse, error) {
 	cpu, cpuErr := CollectCpuMetrics()
 	if cpuErr != nil {
-		logrus.Errorf("Error collecting CPU metrics: %v", cpuErr)
-		return nil, cpuErr
+		logrus.Warnf("Error collecting CPU metrics: %v", cpuErr)
 	}
 
 	memory, memErr := CollectMemoryMetrics()
 	if memErr != nil {
-		logrus.Errorf("Error collecting memory metrics: %v", memErr)
-		return nil, memErr
+		logrus.Warnf("Error collecting memory metrics: %v", memErr)
 	}
 
 	disk, diskErr := CollectDiskMetrics()
 	if diskErr != nil {
-		logrus.Errorf("Error collecting disk metrics: %v", diskErr)
-		return nil, diskErr
+		logrus.Warnf("Error collecting disk metrics: %v", diskErr)
 	}
 
 	host, hostErr := GetHostInformation()
 	if hostErr != nil {
-		logrus.Errorf("Error getting host information: %v", hostErr)
-		return nil, hostErr
+		logrus.Warnf("Error getting host information: %v", hostErr)
+	}
+
+	if cpuErr != nil && memErr != nil && diskErr != nil && hostErr != nil {
+		return nil, fmt.Errorf("failed to collect all system metrics")
 	}
 
 	return &ApiResponse{
-		Cpu:    *cpu,
-		Memory: *memory,
+		Cpu:    cpu,
+		Memory: memory,
 		Disk:   disk,
-		Host:   *host,
+		Host:   host,
 	}, nil
 }
