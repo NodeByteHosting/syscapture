@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SysCapture</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-900">
+    <header class="bg-blue-600 text-white p-6">
+        <h1 class="text-4xl font-bold">SysCapture</h1>
+        <p class="text-lg">Open source hardware monitoring agent</p>
+    </header>
+    <main class="container mx-auto p-6">
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Features</h2>
+            <ul class="list-disc list-inside">
+                <li>Hardware Monitoring: Captures CPU, memory, disk, and host details.</li>
+                <li>RESTful API: Retrieve metrics quickly via HTTP endpoints.</li>
+                <li>Lightweight: Minimal system overhead.</li>
+                <li>Extensible: Fully open source, allowing for customization.</li>
+            </ul>
+        </section>
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Installation and Setup</h2>
+            <p>For detailed installation and setup instructions, please refer to the following documents:</p>
+            <ul class="list-disc list-inside">
+                <li><a href="./docs/setup.md" class="text-blue-600 hover:underline">Setup Guide</a></li>
+                <li><a href="./docs/nginx.md" class="text-blue-600 hover:underline">NGINX Configuration</a></li>
+                <li><a href="./docs/systemd.md" class="text-blue-600 hover:underline">Systemd Service</a></li>
+            </ul>
+        </section>
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Contributing</h2>
+            <p>Contributions are welcome! To contribute:</p>
+            <ol class="list-decimal list-inside">
+                <li>Fork the repository.</li>
+                <li>Create a new branch (`git checkout -b feature/your-feature`).</li>
+                <li>Commit your changes (`git commit -m 'Add feature'`).</li>
+                <li>Push the branch (`git push origin feature/your-feature`).</li>
+                <li>Open a pull request.</li>
+            </ol>
+            <p>Please follow our coding conventions and include tests where applicable.</p>
+        </section>
+    </main>
+    <footer class="bg-blue-600 text-white text-center p-4">
+        <p>&copy; 2025 SysCapture. All rights reserved.</p>
+    </footer>
+</body>
+</html>
