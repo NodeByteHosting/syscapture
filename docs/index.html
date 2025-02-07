@@ -5,33 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SysCapture - Hardware Monitoring</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen flex flex-col">
-    <header class="bg-gradient-to-r from-blue-500 to-purple-600 text-white py-6 shadow-md">
+    <header class="bg-gradient-to-b from-transparent to-gray-900 text-white py-6 shadow-md">
         <div class="container mx-auto text-center">
             <h1 class="text-5xl font-extrabold">SysCapture</h1>
             <p class="text-lg mt-2">Open-source hardware monitoring agent</p>
         </div>
     </header>
     <main class="container mx-auto p-8 flex-1">
-        <section class="mb-12 text-center">
-            <h2 class="text-3xl font-semibold mb-4">Real-Time System Metrics</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg text-center">
+        <div class="flex justify-center mb-6">
+            <nav class="bg-gray-800 rounded-xl p-2">
+                <button class="px-4 py-2 text-white hover:bg-gray-700 rounded" onclick="showTab('monitoring')">Monitoring</button>
+                <button class="px-4 py-2 text-white hover:bg-gray-700 rounded" onclick="showTab('features')">Features</button>
+                <button class="px-4 py-2 text-white hover:bg-gray-700 rounded" onclick="showTab('installation')">Installation & Setup</button>
+            </nav>
+        </div>
+        <section id="monitoring" class="tab-content">
+            <h2 class="text-3xl font-semibold text-center mb-4">Real-Time System Metrics</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
                     <h3 class="text-xl font-semibold">CPU Usage</h3>
                     <p class="text-4xl font-bold text-blue-400">42%</p>
                 </div>
-                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg text-center">
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
                     <h3 class="text-xl font-semibold">Memory Usage</h3>
                     <p class="text-4xl font-bold text-green-400">68%</p>
                 </div>
-                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg text-center">
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
                     <h3 class="text-xl font-semibold">Disk Usage</h3>
                     <p class="text-4xl font-bold text-red-400">75%</p>
                 </div>
             </div>
+            <div class="mt-6">
+                <h3 class="text-2xl font-semibold mb-4">Usage Over Time</h3>
+                <canvas id="usageChart"></canvas>
+            </div>
         </section>
-        <section class="mb-12">
+        <section id="features" class="tab-content hidden">
             <h2 class="text-3xl font-semibold mb-4">Features</h2>
             <ul class="space-y-3">
                 <li class="flex items-center space-x-3"><span class="text-green-400">✔</span> Captures CPU, memory, disk, and host details.</li>
@@ -40,18 +52,41 @@
                 <li class="flex items-center space-x-3"><span class="text-green-400">✔</span> Open-source and highly extensible.</li>
             </ul>
         </section>
-        <section class="mb-12">
+        <section id="installation" class="tab-content hidden">
             <h2 class="text-3xl font-semibold mb-4">Installation & Setup</h2>
             <p>Follow our guides to install and configure SysCapture:</p>
             <ul class="list-disc list-inside mt-3 space-y-2">
-                <li><a href="https://github.com/NodeByteHosting/syscapture/blob/master/guides/setup.md" class="text-blue-400 hover:underline">Setup Guide</a></li>
-                <li><a href="https://github.com/NodeByteHosting/syscapture/blob/master/guides/nginx.md" class="text-blue-400 hover:underline">NGINX Configuration</a></li>
-                <li><a href="https://github.com/NodeByteHosting/syscapture/blob/master/guides/systemd.md" class="text-blue-400 hover:underline">Systemd Service</a></li>
+                <li><a href="#" class="text-blue-400 hover:underline" data-file="guides/setup.md">Setup Guide</a></li>
+                <li><a href="#" class="text-blue-400 hover:underline" data-file="guides/nginx.md">NGINX Configuration</a></li>
+                <li><a href="#" class="text-blue-400 hover:underline" data-file="guides/systemd.md">Systemd Service</a></li>
             </ul>
+            <div id="markdown-content" class="bg-gray-800 p-6 rounded-xl mt-4 shadow-lg"></div>
         </section>
     </main>
-    <footer class="bg-gradient-to-r from-blue-500 to-purple-600 text-center py-4 mt-auto">
-        <p>&copy; 2025 NodeByte LTD. All rights reserved.</p>
+    <footer class="bg-gradient-to-t from-transparent to-gray-900 text-center py-4 mt-auto">
+        <p>&copy; 2025 SysCapture. All rights reserved.</p>
     </footer>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+        }
+        
+        document.querySelectorAll('#installation a[data-file]').forEach(link => {
+            link.addEventListener('click', async (event) => {
+                event.preventDefault();
+                const filePath = link.getAttribute('data-file');
+                try {
+                    const response = await fetch(filePath);
+                    if (!response.ok) throw new Error('File not found');
+                    const markdown = await response.text();
+                    document.getElementById('markdown-content').innerHTML = marked.parse(markdown);
+                } catch (error) {
+                    document.getElementById('markdown-content').innerHTML = '<p class="text-red-400">Error loading file.</p>';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
