@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/sirupsen/logrus"
 )
 
 // CollectCpuMetrics collects various CPU metrics and returns them.
@@ -41,7 +42,8 @@ func CollectCpuMetrics() (*CpuData, error) {
 	// Collect CPU Temperature
 	temperature, tempErr := getCPUTemperature()
 	if tempErr != nil {
-		return nil, tempErr
+		// Log the error but continue collecting other metrics
+		logrus.Warnf("Error collecting CPU temperature: %v", tempErr)
 	}
 
 	// Convert *float64 to *float32
