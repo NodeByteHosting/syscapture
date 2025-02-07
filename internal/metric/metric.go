@@ -1,5 +1,9 @@
 package metric
 
+import (
+	"github.com/sirupsen/logrus"
+)
+
 type ApiResponse struct {
 	Cpu    CpuData     `json:"cpu"`
 	Memory MemoryData  `json:"memory"`
@@ -46,23 +50,26 @@ type HostData struct {
 
 func GetAllSystemMetrics() (*ApiResponse, error) {
 	cpu, cpuErr := CollectCpuMetrics()
-	memory, memErr := CollectMemoryMetrics()
-	disk, diskErr := CollectDiskMetrics()
-	host, hostErr := GetHostInformation()
-
 	if cpuErr != nil {
+		logrus.Errorf("Error collecting CPU metrics: %v", cpuErr)
 		return nil, cpuErr
 	}
 
+	memory, memErr := CollectMemoryMetrics()
 	if memErr != nil {
+		logrus.Errorf("Error collecting memory metrics: %v", memErr)
 		return nil, memErr
 	}
 
+	disk, diskErr := CollectDiskMetrics()
 	if diskErr != nil {
+		logrus.Errorf("Error collecting disk metrics: %v", diskErr)
 		return nil, diskErr
 	}
 
+	host, hostErr := GetHostInformation()
 	if hostErr != nil {
+		logrus.Errorf("Error getting host information: %v", hostErr)
 		return nil, hostErr
 	}
 
