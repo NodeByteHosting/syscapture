@@ -6,6 +6,7 @@
     <title>SysCapture - Hardware Monitoring</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen flex flex-col">
     <header class="bg-gradient-to-b from-transparent to-gray-900 text-white py-6 shadow-md">
@@ -27,15 +28,15 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
                 <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
                     <h3 class="text-xl font-semibold">CPU Usage</h3>
-                    <p class="text-4xl font-bold text-blue-400">42%</p>
+                    <p id="cpuUsage" class="text-4xl font-bold text-blue-400">--%</p>
                 </div>
                 <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
                     <h3 class="text-xl font-semibold">Memory Usage</h3>
-                    <p class="text-4xl font-bold text-green-400">68%</p>
+                    <p id="memoryUsage" class="text-4xl font-bold text-green-400">--%</p>
                 </div>
                 <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
                     <h3 class="text-xl font-semibold">Disk Usage</h3>
-                    <p class="text-4xl font-bold text-red-400">75%</p>
+                    <p id="diskUsage" class="text-4xl font-bold text-red-400">--%</p>
                 </div>
             </div>
             <div class="mt-6">
@@ -46,19 +47,21 @@
         <section id="features" class="tab-content hidden">
             <h2 class="text-3xl font-semibold mb-4">Features</h2>
             <ul class="space-y-3">
-                <li class="flex items-center space-x-3"><span class="text-green-400">✔</span> Captures CPU, memory, disk, and host details.</li>
-                <li class="flex items-center space-x-3"><span class="text-green-400">✔</span> RESTful API for real-time monitoring.</li>
+                <li class="flex items-center space-x-3"><span class="text-green-400">✔</span> Captures CPU, memory, disk, network, and host details.</li>
+                <li class="flex items-center space-x-3"><span class="text-green-400">✔</span> RESTful API for real-time and historical monitoring.</li>
                 <li class="flex items-center space-x-3"><span class="text-green-400">✔</span> Lightweight with minimal system overhead.</li>
                 <li class="flex items-center space-x-3"><span class="text-green-400">✔</span> Open-source and highly extensible.</li>
+                <li class="flex items-center space-x-3"><span class="text-green-400">✔</span> Cross-platform support (Linux, Windows, macOS).</li>
+                <li class="flex items-center space-x-3"><span class="text-green-400">✔</span> Custom alerting and webhook integration.</li>
             </ul>
         </section>
         <section id="installation" class="tab-content hidden">
             <h2 class="text-3xl font-semibold mb-4">Installation & Setup</h2>
             <p>Follow our guides to install and configure SysCapture:</p>
             <ul class="list-disc list-inside mt-3 space-y-2">
-                <li><a href="#" class="text-blue-400 hover:underline" data-file="guides/setup.md">Setup Guide</a></li>
-                <li><a href="#" class="text-blue-400 hover:underline" data-file="guides/nginx.md">NGINX Configuration</a></li>
-                <li><a href="#" class="text-blue-400 hover:underline" data-file="guides/systemd.md">Systemd Service</a></li>
+                <li><a href="#" class="text-blue-400 hover:underline" data-file="docs/setup.md">Setup Guide</a></li>
+                <li><a href="#" class="text-blue-400 hover:underline" data-file="docs/nginx.md">NGINX Configuration</a></li>
+                <li><a href="#" class="text-blue-400 hover:underline" data-file="docs/systemd.md">Systemd Service</a></li>
             </ul>
             <div id="markdown-content" class="bg-gray-800 p-6 rounded-xl mt-4 shadow-lg"></div>
         </section>
@@ -66,13 +69,26 @@
     <footer class="bg-gradient-to-t from-transparent to-gray-900 text-center py-4 mt-auto">
         <p>&copy; 2025 SysCapture. All rights reserved.</p>
     </footer>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
             document.getElementById(tabId).classList.remove('hidden');
         }
-        
+
+        async function fetchMetrics() {
+            try {
+                const response = await fetch('/api/metrics');
+                if (!response.ok) throw new Error('Failed to fetch metrics');
+                const data = await response.json();
+                document.getElementById('cpuUsage').textContent = `${data.cpu}%`;
+                document.getElementById('memoryUsage').textContent = `${data.memory}%`;
+                document.getElementById('diskUsage').textContent = `${data.disk}%`;
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+            }
+        }
+        setInterval(fetchMetrics, 5000);
+
         document.querySelectorAll('#installation a[data-file]').forEach(link => {
             link.addEventListener('click', async (event) => {
                 event.preventDefault();

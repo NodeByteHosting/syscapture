@@ -21,9 +21,9 @@
 
 For detailed installation and setup instructions, please refer to the following documents:
 
-- [Setup Guide](./guides/setup.md)
-- [NGINX Configuration](./guides/nginx.md)
-- [Systemd Service](./guides/systemd.md)
+- [Setup Guide](./docs/setup.md)
+- [NGINX Configuration](./docs/nginx.md)
+- [Systemd Service](./docs/systemd.md)
 
 ---
 
