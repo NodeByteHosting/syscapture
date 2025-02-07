@@ -59,9 +59,9 @@
             <h2 class="text-3xl font-semibold mb-4">Installation & Setup</h2>
             <p>Follow our guides to install and configure SysCapture:</p>
             <ul class="list-disc list-inside mt-3 space-y-2">
-                <li><a href="#" class="text-blue-400 hover:underline" data-file="docs/setup.md">Setup Guide</a></li>
-                <li><a href="#" class="text-blue-400 hover:underline" data-file="docs/nginx.md">NGINX Configuration</a></li>
-                <li><a href="#" class="text-blue-400 hover:underline" data-file="docs/systemd.md">Systemd Service</a></li>
+                <li><a href="#" class="text-blue-400 hover:underline" data-file="setup.md">Setup Guide</a></li>
+                <li><a href="#" class="text-blue-400 hover:underline" data-file="nginx.md">NGINX Configuration</a></li>
+                <li><a href="#" class="text-blue-400 hover:underline" data-file="systemd.md">Systemd Service</a></li>
             </ul>
             <div id="markdown-content" class="bg-gray-800 p-6 rounded-xl mt-4 shadow-lg"></div>
         </section>
@@ -76,32 +76,25 @@
         }
 
         async function fetchMetrics() {
-            try {
-                const response = await fetch('/api/metrics');
-                if (!response.ok) throw new Error('Failed to fetch metrics');
-                const data = await response.json();
-                document.getElementById('cpuUsage').textContent = `${data.cpu}%`;
-                document.getElementById('memoryUsage').textContent = `${data.memory}%`;
-                document.getElementById('diskUsage').textContent = `${data.disk}%`;
-            } catch (error) {
-                console.error('Error fetching metrics:', error);
-            }
+            const data = { cpu: 35, memory: 62, disk: 48 };
+            document.getElementById('cpuUsage').textContent = `${data.cpu}%`;
+            document.getElementById('memoryUsage').textContent = `${data.memory}%`;
+            document.getElementById('diskUsage').textContent = `${data.disk}%`;
         }
         setInterval(fetchMetrics, 5000);
 
-        document.querySelectorAll('#installation a[data-file]').forEach(link => {
-            link.addEventListener('click', async (event) => {
-                event.preventDefault();
-                const filePath = link.getAttribute('data-file');
-                try {
-                    const response = await fetch(filePath);
-                    if (!response.ok) throw new Error('File not found');
-                    const markdown = await response.text();
-                    document.getElementById('markdown-content').innerHTML = marked.parse(markdown);
-                } catch (error) {
-                    document.getElementById('markdown-content').innerHTML = '<p class="text-red-400">Error loading file.</p>';
-                }
-            });
+        const ctx = document.getElementById('usageChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['10s', '20s', '30s', '40s', '50s', '60s'],
+                datasets: [
+                    { label: 'CPU %', data: [30, 40, 35, 50, 45, 60], borderColor: 'blue', fill: false },
+                    { label: 'Memory %', data: [50, 52, 54, 53, 55, 58], borderColor: 'green', fill: false },
+                    { label: 'Disk %', data: [40, 42, 38, 41, 39, 43], borderColor: 'red', fill: false }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
         });
     </script>
 </body>
