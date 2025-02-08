@@ -1,84 +1,108 @@
 package metric
 
-import (
-	"fmt"
+// MetricsSlice represents a slice of Metric interfaces.
+type MetricsSlice []Metric
 
-	"github.com/sirupsen/logrus"
-)
+func (m MetricsSlice) isMetric() {}
 
-type ApiResponse struct {
-	Cpu    *CpuData    `json:"cpu"`
-	Memory *MemoryData `json:"memory"`
-	Disk   []*DiskData `json:"disk"`
-	Host   *HostData   `json:"host"`
+// Metric interface to be implemented by all metric types.
+type Metric interface {
+	isMetric()
 }
 
-type CpuData struct {
-	PhysicalCore int      `json:"physical_core"` // Physical cores
-	LogicalCore  int      `json:"logical_core"`  // Logical cores aka Threads
-	Frequency    float64  `json:"frequency"`     // Frequency in mHz
-	Temperature  *float32 `json:"temperature"`   // Temperature in Celsius (nil if not available)
-	FreePercent  float64  `json:"free_percent"`  // Free percentage                               //* 1 - (Total - Idle / Total)
-	UsagePercent float64  `json:"usage_percent"` // Usage percentage                              //* Total - Idle / Total
+// APIResponse represents the structure of the API response.
+type APIResponse struct {
+	Data   Metric      `json:"data"`
+	Errors []CustomErr `json:"errors"`
 }
 
+// AllMetrics represents all collected system metrics.
+type AllMetrics struct {
+	CPU    CPUData      `json:"cpu"`
+	Memory MemoryData   `json:"memory"`
+	Disk   MetricsSlice `json:"disk"`
+	Host   HostData     `json:"host"`
+}
+
+func (a AllMetrics) isMetric() {}
+
+// CustomErr represents a custom error structure.
+type CustomErr struct {
+	Metric []string `json:"metric"`
+	Error  string   `json:"err"`
+}
+
+// CPUData represents the collected CPU metrics.
+type CPUData struct {
+	PhysicalCore     int       `json:"physical_core"`     // Physical cores
+	LogicalCore      int       `json:"logical_core"`      // Logical cores aka Threads
+	Frequency        float64   `json:"frequency"`         // Frequency in mHz
+	CurrentFrequency int       `json:"current_frequency"` // Current Frequency in mHz
+	Temperature      []float32 `json:"temperature"`       // Temperature in Celsius (nil if not available)
+	FreePercent      float64   `json:"free_percent"`      // Free percentage
+	UsagePercent     float64   `json:"usage_percent"`     // Usage percentage
+}
+
+func (c CPUData) isMetric() {}
+
+// MemoryData represents the collected memory metrics.
 type MemoryData struct {
-	TotalBytes       uint64   `json:"total_bytes"`        // Total space in bytes
-	AvailableBytes   uint64   `json:"available_bytes"`    // Available space in bytes
-	UsedBytes        uint64   `json:"used_bytes"`         // Used space in bytes      //* Total - Free - Buffers - Cached
-	UsagePercent     *float64 `json:"usage_percent"`      // Usage Percent            //* (Used / Total) * 100.0
-	SwapTotalBytes   uint64   `json:"swap_total_bytes"`   // Total swap space in bytes
-	SwapUsedBytes    uint64   `json:"swap_used_bytes"`    // Used swap space in bytes
-	SwapFreeBytes    uint64   `json:"swap_free_bytes"`    // Free swap space in bytes
-	SwapUsagePercent *float64 `json:"swap_usage_percent"` // Swap usage percent       //* (SwapUsed / SwapTotal) * 100.0
+	TotalBytes     uint64   `json:"total_bytes"`     // Total space in bytes
+	AvailableBytes uint64   `json:"available_bytes"` // Available space in bytes
+	UsedBytes      uint64   `json:"used_bytes"`      // Used space in bytes
+	UsagePercent   *float64 `json:"usage_percent"`   // Usage Percent
 }
 
+func (m MemoryData) isMetric() {}
+
+// DiskData represents the collected disk metrics.
 type DiskData struct {
-	ReadSpeedBytes  *uint64  `json:"read_speed_bytes"`  // Read speed in bytes per second
-	WriteSpeedBytes *uint64  `json:"write_speed_bytes"` // Write speed in bytes per second
-	TotalBytes      *uint64  `json:"total_bytes"`       // Total space of "/" in bytes
-	FreeBytes       *uint64  `json:"free_bytes"`        // Free space of "/" in bytes
-	UsagePercent    *float64 `json:"usage_percent"`     // Usage Percent of "/"
+	Device       string   `json:"device"`        // Device
+	TotalBytes   *uint64  `json:"total_bytes"`   // Total space of device in bytes
+	FreeBytes    *uint64  `json:"free_bytes"`    // Free space of device in bytes
+	UsagePercent *float64 `json:"usage_percent"` // Usage Percent of device
 }
 
+func (d DiskData) isMetric() {}
+
+// HostData represents the collected host information.
 type HostData struct {
-	Hostname       string `json:"hostname"`       // Hostname
-	Os             string `json:"os"`             // Operating System
-	Platform       string `json:"platform"`       // Platform Name
-	KernelVersion  string `json:"kernel_version"` // Kernel Version
-	Uptime         uint64 `json:"uptime"`         // Uptime in seconds
-	Virtualization string `json:"virtualization"` // Virtualization system and role
+	Os            string `json:"os"`             // Operating System
+	Platform      string `json:"platform"`       // Platform Name
+	KernelVersion string `json:"kernel_version"` // Kernel Version
 }
 
-func GetAllSystemMetrics() (*ApiResponse, error) {
-	cpu, cpuErr := CollectCpuMetrics()
-	if cpuErr != nil {
-		logrus.Warnf("Error collecting CPU metrics: %v", cpuErr)
-	}
+func (h HostData) isMetric() {}
 
+// GetAllSystemMetrics collects all system metrics and returns them along with any errors encountered.
+func GetAllSystemMetrics() (AllMetrics, []CustomErr) {
+	cpu, cpuErr := CollectCPUMetrics()
 	memory, memErr := CollectMemoryMetrics()
-	if memErr != nil {
-		logrus.Warnf("Error collecting memory metrics: %v", memErr)
-	}
-
 	disk, diskErr := CollectDiskMetrics()
-	if diskErr != nil {
-		logrus.Warnf("Error collecting disk metrics: %v", diskErr)
-	}
-
 	host, hostErr := GetHostInformation()
+
+	var errors []CustomErr
+
+	if cpuErr != nil {
+		errors = append(errors, cpuErr...)
+	}
+
+	if memErr != nil {
+		errors = append(errors, memErr...)
+	}
+
+	if diskErr != nil {
+		errors = append(errors, diskErr...)
+	}
+
 	if hostErr != nil {
-		logrus.Warnf("Error getting host information: %v", hostErr)
+		errors = append(errors, hostErr...)
 	}
 
-	if cpuErr != nil && memErr != nil && diskErr != nil && hostErr != nil {
-		return nil, fmt.Errorf("failed to collect all system metrics")
-	}
-
-	return &ApiResponse{
-		Cpu:    cpu,
-		Memory: memory,
+	return AllMetrics{
+		CPU:    *cpu,
+		Memory: *memory,
 		Disk:   disk,
-		Host:   host,
-	}, nil
+		Host:   *host,
+	}, errors
 }

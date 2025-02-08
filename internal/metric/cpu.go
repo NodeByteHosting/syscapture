@@ -1,94 +1,88 @@
 package metric
 
 import (
-	"fmt"
-	"io/ioutil"
-	"strconv"
-	"strings"
+	"time"
 
+	"github.com/nodebytehosting/syscapture/internal/sysfs"
 	"github.com/shirou/gopsutil/v4/cpu"
-	"github.com/sirupsen/logrus"
 )
 
-// CollectCpuMetrics collects various CPU metrics and returns them.
-func CollectCpuMetrics() (*CpuData, error) {
+// CollectCPUMetrics collects various CPU metrics and returns them along with any errors encountered.
+func CollectCPUMetrics() (*CPUData, []CustomErr) {
+	var cpuErrors []CustomErr
+
 	// Collect CPU Core Counts
 	cpuPhysicalCoreCount, cpuPhysicalErr := cpu.Counts(false)
-	cpuLogicalCoreCount, cpuLogicalErr := cpu.Counts(true)
-
 	if cpuPhysicalErr != nil {
-		return nil, cpuPhysicalErr
+		cpuErrors = append(cpuErrors, CustomErr{
+			Metric: []string{"cpu.physical_core"},
+			Error:  cpuPhysicalErr.Error(),
+		})
+		cpuPhysicalCoreCount = 0
 	}
+
+	cpuLogicalCoreCount, cpuLogicalErr := cpu.Counts(true)
 	if cpuLogicalErr != nil {
-		return nil, cpuLogicalErr
+		cpuErrors = append(cpuErrors, CustomErr{
+			Metric: []string{"cpu.logical_core"},
+			Error:  cpuLogicalErr.Error(),
+		})
+		cpuLogicalCoreCount = 0
 	}
 
 	// Collect CPU Information (Frequency, Model, etc)
 	cpuInformation, cpuInfoErr := cpu.Info()
+	var cpuFrequency float64
 	if cpuInfoErr != nil {
-		return nil, cpuInfoErr
+		cpuErrors = append(cpuErrors, CustomErr{
+			Metric: []string{"cpu.frequency"},
+			Error:  cpuInfoErr.Error(),
+		})
+		cpuFrequency = 0
+	} else if len(cpuInformation) > 0 {
+		cpuFrequency = cpuInformation[0].Mhz
 	}
 
 	// Collect CPU Usage
-	cpuTimes, cpuTimesErr := cpu.Times(false)
-	if cpuTimesErr != nil {
-		return nil, cpuTimesErr
+	cpuPercents, cpuPercentsErr := cpu.Percent(time.Second, false)
+	var cpuUsagePercent float64
+	if cpuPercentsErr != nil {
+		cpuErrors = append(cpuErrors, CustomErr{
+			Metric: []string{"cpu.usage_percent"},
+			Error:  cpuPercentsErr.Error(),
+		})
+		cpuUsagePercent = 0
+	} else if len(cpuPercents) > 0 {
+		cpuUsagePercent = cpuPercents[0] / 100.0
 	}
 
-	// Calculate CPU Usage Percentage
-	total := cpuTimes[0].User + cpuTimes[0].Nice + cpuTimes[0].System + cpuTimes[0].Idle + cpuTimes[0].Iowait + cpuTimes[0].Irq + cpuTimes[0].Softirq + cpuTimes[0].Steal + cpuTimes[0].Guest + cpuTimes[0].GuestNice
-	cpuUsagePercent := (total - (cpuTimes[0].Idle + cpuTimes[0].Iowait)) / total
-
-	// Collect CPU Temperature
-	temperature, tempErr := getCPUTemperature()
-	if tempErr != nil {
-		// Log the error but continue collecting other metrics
-		logrus.Warnf("Error collecting CPU temperature: %v", tempErr)
+	// Collect CPU Temperature from sysfs
+	cpuTemp, cpuTempErr := sysfs.CPUTemperature()
+	if cpuTempErr != nil {
+		cpuErrors = append(cpuErrors, CustomErr{
+			Metric: []string{"cpu.temperature"},
+			Error:  cpuTempErr.Error(),
+		})
+		cpuTemp = nil
 	}
 
-	// Convert *float64 to *float32
-	var temp32 *float32
-	if temperature != nil {
-		temp := float32(*temperature)
-		temp32 = &temp
+	// Collect CPU Current Frequency from sysfs
+	cpuCurrentFrequency, cpuCurFreqErr := sysfs.CPUCurrentFrequency()
+	if cpuCurFreqErr != nil {
+		cpuErrors = append(cpuErrors, CustomErr{
+			Metric: []string{"cpu.current_frequency"},
+			Error:  cpuCurFreqErr.Error(),
+		})
+		cpuCurrentFrequency = 0
 	}
 
-	return &CpuData{
-		PhysicalCore: cpuPhysicalCoreCount,
-		LogicalCore:  cpuLogicalCoreCount,
-		Frequency:    cpuInformation[0].Mhz,
-		Temperature:  temp32,
-		FreePercent:  1 - cpuUsagePercent,
-		UsagePercent: cpuUsagePercent,
-	}, nil
-}
-
-// getCPUTemperature retrieves the CPU temperature from the system.
-func getCPUTemperature() (*float64, error) {
-	// Read the temperature from /sys/class/thermal/thermal_zone*/temp
-	files, err := ioutil.ReadDir("/sys/class/thermal/")
-	if err != nil {
-		return nil, err
-	}
-
-	for _, file := range files {
-		if strings.HasPrefix(file.Name(), "thermal_zone") {
-			tempPath := fmt.Sprintf("/sys/class/thermal/%s/temp", file.Name())
-			tempBytes, err := ioutil.ReadFile(tempPath)
-			if err != nil {
-				continue
-			}
-
-			tempStr := strings.TrimSpace(string(tempBytes))
-			tempMilliCelsius, err := strconv.ParseFloat(tempStr, 64)
-			if err != nil {
-				continue
-			}
-
-			tempCelsius := tempMilliCelsius / 1000.0
-			return &tempCelsius, nil
-		}
-	}
-
-	return nil, fmt.Errorf("could not find CPU temperature")
+	return &CPUData{
+		PhysicalCore:     cpuPhysicalCoreCount,
+		LogicalCore:      cpuLogicalCoreCount,
+		Frequency:        cpuFrequency,
+		CurrentFrequency: cpuCurrentFrequency,
+		Temperature:      cpuTemp,
+		FreePercent:      *RoundFloatPtr(1-cpuUsagePercent, 4),
+		UsagePercent:     *RoundFloatPtr(cpuUsagePercent, 4),
+	}, cpuErrors
 }

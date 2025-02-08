@@ -1,69 +1,50 @@
 package handler
 
 import (
-    "net/http"
+	"net/http"
 
-    "github.com/gin-gonic/gin"
-    "github.com/nodebytehosting/syscapture/internal/metric"
-    "github.com/sirupsen/logrus"
+	"github.com/gin-gonic/gin"
+	"github.com/nodebytehosting/syscapture/internal/metric"
 )
 
-// Metrics retrieves all system metrics and sends the response.
+// handleMetricResponse sends a JSON response with the collected metrics and any errors.
+func handleMetricResponse(c *gin.Context, metrics metric.Metric, errs []metric.CustomErr) {
+	statusCode := http.StatusOK
+	if len(errs) > 0 {
+		statusCode = http.StatusMultiStatus
+	}
+	c.JSON(statusCode, metric.APIResponse{
+		Data:   metrics,
+		Errors: errs,
+	})
+}
+
+// Metrics collects and responds with all system metrics.
 func Metrics(c *gin.Context) {
-    metrics, metricsErr := metric.GetAllSystemMetrics()
-    if metricsErr != nil {
-        logrus.Errorf("Error getting all system metrics: %v", metricsErr)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get metrics"})
-        return
-    }
-
-    c.JSON(http.StatusOK, metrics)
+	metrics, metricsErrs := metric.GetAllSystemMetrics()
+	handleMetricResponse(c, metrics, metricsErrs)
 }
 
-// MetricsCPU retrieves CPU metrics and sends the response.
+// MetricsCPU collects and responds with CPU metrics.
 func MetricsCPU(c *gin.Context) {
-    metrics, metricsErr := metric.CollectCpuMetrics()
-    if metricsErr != nil {
-        logrus.Errorf("Error getting CPU metrics: %v", metricsErr)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get CPU metrics"})
-        return
-    }
-
-    c.JSON(http.StatusOK, metrics)
+	cpuMetrics, metricsErrs := metric.CollectCPUMetrics()
+	handleMetricResponse(c, cpuMetrics, metricsErrs)
 }
 
-// MetricsMemory retrieves memory metrics and sends the response.
+// MetricsMemory collects and responds with memory metrics.
 func MetricsMemory(c *gin.Context) {
-    metrics, metricsErr := metric.CollectMemoryMetrics()
-    if metricsErr != nil {
-        logrus.Errorf("Error getting memory metrics: %v", metricsErr)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get memory metrics"})
-        return
-    }
-
-    c.JSON(http.StatusOK, metrics)
+	memoryMetrics, metricsErrs := metric.CollectMemoryMetrics()
+	handleMetricResponse(c, memoryMetrics, metricsErrs)
 }
 
-// MetricsDisk retrieves disk metrics and sends the response.
+// MetricsDisk collects and responds with disk metrics.
 func MetricsDisk(c *gin.Context) {
-    metrics, metricsErr := metric.CollectDiskMetrics()
-    if metricsErr != nil {
-        logrus.Errorf("Error getting disk metrics: %v", metricsErr)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get disk metrics"})
-        return
-    }
-
-    c.JSON(http.StatusOK, metrics)
+	diskMetrics, metricsErrs := metric.CollectDiskMetrics()
+	handleMetricResponse(c, diskMetrics, metricsErrs)
 }
 
-// MetricsHost retrieves host information metrics and sends the response.
+// MetricsHost collects and responds with host information.
 func MetricsHost(c *gin.Context) {
-    metrics, metricsErr := metric.GetHostInformation()
-    if metricsErr != nil {
-        logrus.Errorf("Error getting host information: %v", metricsErr)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to get host information"})
-        return
-    }
-
-    c.JSON(http.StatusOK, metrics)
+	hostMetrics, metricsErrs := metric.GetHostInformation()
+	handleMetricResponse(c, hostMetrics, metricsErrs)
 }

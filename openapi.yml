@@ -5,7 +5,7 @@ info:
   version: 1.0.0
   license:
     name: MIT
-    url: https://github.com/nodebytehosting/syscapture/blob/develop/LICENSE
+    url: https://github.com/nodebytehosting/syscapture/blob/master/LICENSE
 servers:
   - url: http://localhost:{PORT}{API_PATH}
     description: Local development server

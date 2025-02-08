@@ -6,35 +6,33 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	authorizationHeader = "Authorization"
-	bearerPrefix        = "Bearer"
-	errorParsingHeader  = "Unable to parse 'Authorization' header"
-	errorTokenRequired  = "Authorization token required"
-	errorInvalidToken   = "Invalid token provided"
-)
-
 // AuthRequired is a middleware function that checks for a valid Bearer token in the Authorization header.
 func AuthRequired(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader(authorizationHeader)
+		authHeader := c.GetHeader("Authorization")
 		splittedHeader := strings.Split(authHeader, " ")
 
-		if len(splittedHeader) != 2 || splittedHeader[0] != bearerPrefix {
+		// Check if the Authorization header is properly formatted
+		if len(splittedHeader) != 2 || splittedHeader[0] != "Bearer" {
 			c.JSON(401, gin.H{
-				"error": errorParsingHeader,
+				"error": "Unable to parse 'Authorization' header",
 			})
 			c.Abort()
 			return
 		}
 
 		token := splittedHeader[1]
+
+		// Check if the token is provided
 		if token == "" {
-			c.JSON(401, gin.H{"error": errorTokenRequired})
+			c.JSON(401, gin.H{"error": "Authorization token required"})
 			c.Abort()
 			return
-		} else if token != secret {
-			c.JSON(403, gin.H{"error": errorInvalidToken})
+		}
+
+		// Check if the token matches the secret
+		if token != secret {
+			c.JSON(403, gin.H{"error": "Invalid token provided"})
 			c.Abort()
 			return
 		}

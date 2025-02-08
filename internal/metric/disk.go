@@ -1,62 +1,68 @@
 package metric
 
 import (
-	"log"
-	"time"
+	"slices"
+	"strings"
 
 	"github.com/shirou/gopsutil/v4/disk"
 )
 
-// CollectDiskMetrics collects various disk metrics and returns them.
-func CollectDiskMetrics() ([]*DiskData, error) {
-	var diskData []*DiskData
-
-	partitions, partitionsErr := disk.Partitions(false)
-	if partitionsErr != nil {
-		return nil, partitionsErr
+// CollectDiskMetrics collects various disk metrics and returns them along with any errors encountered.
+func CollectDiskMetrics() (MetricsSlice, []CustomErr) {
+	defaultDiskData := []*DiskData{
+		{
+			Device:       "unknown",
+			TotalBytes:   nil,
+			FreeBytes:    nil,
+			UsagePercent: nil,
+		},
 	}
+	var diskErrors []CustomErr
+	var metricsSlice MetricsSlice
+	var checkedSlice = make([]string, 0, 10) // To keep track of checked partitions
 
-	for _, partition := range partitions {
-		diskUsage, diskUsageErr := disk.Usage(partition.Mountpoint)
-		if diskUsageErr != nil {
-			log.Printf("Unable to get disk usage for %s: %v", partition.Mountpoint, diskUsageErr)
-			continue
-		}
-
-		readSpeed, writeSpeed, speedErr := getDiskSpeed(partition.Mountpoint)
-		if speedErr != nil {
-			log.Printf("Unable to get disk speed for %s: %v", partition.Mountpoint, speedErr)
-			continue
-		}
-
-		diskData = append(diskData, &DiskData{
-			ReadSpeedBytes:  readSpeed,
-			WriteSpeedBytes: writeSpeed,
-			TotalBytes:      &diskUsage.Total,
-			FreeBytes:       &diskUsage.Free,
-			UsagePercent:    RoundFloatPtr(diskUsage.UsedPercent/100, 4),
+	// Set all flag "true" to get all partitions instead of just physical ones.
+	partitions, partErr := disk.Partitions(true)
+	if partErr != nil {
+		diskErrors = append(diskErrors, CustomErr{
+			Metric: []string{"disk.partitions"},
+			Error:  partErr.Error(),
 		})
 	}
 
-	return diskData, nil
-}
+	for _, p := range partitions {
+		// Filter out partitions that are already checked or not a device
+		// Also, exclude '/dev/loop' devices to avoid unnecessary partitions
+		// * /dev/loop devices are used for mounting snap packages
+		if slices.Contains(checkedSlice, p.Device) || !strings.HasPrefix(p.Device, "/dev") || strings.HasPrefix(p.Device, "/dev/loop") {
+			continue
+		}
 
-// getDiskSpeed calculates the read and write speed for the given mountpoint.
-func getDiskSpeed(mountpoint string) (*uint64, *uint64, error) {
-	ioCountersStart, err := disk.IOCounters(mountpoint)
-	if err != nil {
-		return nil, nil, err
+		diskUsage, diskUsageErr := disk.Usage(p.Mountpoint)
+		if diskUsageErr != nil {
+			diskErrors = append(diskErrors, CustomErr{
+				Metric: []string{"disk.usage_percent", "disk.total_bytes", "disk.free_bytes"},
+				Error:  diskUsageErr.Error() + " " + p.Mountpoint,
+			})
+			continue
+		}
+
+		checkedSlice = append(checkedSlice, p.Device)
+		metricsSlice = append(metricsSlice, &DiskData{
+			Device:       p.Device,
+			TotalBytes:   &diskUsage.Total,
+			FreeBytes:    &diskUsage.Free,
+			UsagePercent: RoundFloatPtr(diskUsage.UsedPercent/100, 4),
+		})
 	}
 
-	time.Sleep(1 * time.Second)
-
-	ioCountersEnd, err := disk.IOCounters(mountpoint)
-	if err != nil {
-		return nil, nil, err
+	if len(diskErrors) == 0 {
+		return metricsSlice, nil
 	}
 
-	readSpeed := ioCountersEnd[mountpoint].ReadBytes - ioCountersStart[mountpoint].ReadBytes
-	writeSpeed := ioCountersEnd[mountpoint].WriteBytes - ioCountersStart[mountpoint].WriteBytes
+	if len(metricsSlice) == 0 {
+		return MetricsSlice{defaultDiskData[0]}, diskErrors
+	}
 
-	return &readSpeed, &writeSpeed, nil
+	return metricsSlice, diskErrors
 }

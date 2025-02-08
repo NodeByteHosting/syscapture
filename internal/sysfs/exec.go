@@ -7,14 +7,15 @@ import (
 )
 
 // ShellExec executes a shell command and returns the output as a string.
-func ShellExec(command string) (string, error) {
-	// Validate the command to prevent execution of consecutive commands
-	if strings.Contains(command, "&&") || strings.Contains(command, "||") || strings.Contains(command, ";") {
+// It prevents the execution of consecutive commands for security reasons.
+func ShellExec(c string) (string, error) {
+	// Check for forbidden characters to prevent consecutive commands
+	if strings.Contains(c, "&&") || strings.Contains(c, "||") || strings.Contains(c, ";") {
 		return "", errors.New("it's forbidden to execute consecutive commands")
 	}
 
 	// Create the command
-	cmd := exec.Command("bash", "-c", command)
+	cmd := exec.Command("bash", "-c", c)
 
 	// Run the command and capture the output
 	output, err := cmd.Output()
@@ -22,5 +23,5 @@ func ShellExec(command string) (string, error) {
 		return "", err
 	}
 
-	return strings.TrimSpace(string(output)), nil
+	return string(output), nil
 }
