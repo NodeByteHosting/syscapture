@@ -1,4 +1,4 @@
-[![Visit Nodebyte](./docs/assets/syscapture-banner.png)](https://nodebytehosting.github.io/syscapture/)
+[![Visit Nodebyte](https://cordx.lol/users/510065483693817867/S3XUM4iK.png)](https://nodebytehosting.github.io/syscapture/)
 
 ## Overview 
 **SysCapture** is an open source hardware monitoring agent that collects vital system information and exposes it via a RESTful API for easy integration with monitoring services like Prometheus.  
