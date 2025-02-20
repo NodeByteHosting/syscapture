@@ -12,10 +12,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	docs "github.com/nodebytehosting/syscapture/docs"
 	"github.com/nodebytehosting/syscapture/internal/config"
 	"github.com/nodebytehosting/syscapture/internal/handler"
 	"github.com/nodebytehosting/syscapture/internal/middleware"
 	"github.com/nodebytehosting/syscapture/internal/plugin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 var (
@@ -25,6 +28,11 @@ var (
 	Version       = "0.2.0-beta"
 )
 
+// @title SysCapture API
+// @version 0.2.0
+// @description This is the API documentation for SysCapture.
+// @host localhost:42000
+// @BasePath /api
 func main() {
 	// Load environment variables from .env file
 	err := godotenv.Load()
@@ -104,8 +112,16 @@ func initLogger() {
 func initRouter() *gin.Engine {
 	r := gin.Default()
 
+	docs.SwaggerInfo.BasePath = "/api"
+
 	apiBase := r.Group("/api")
 
+	// @Summary Get health status
+	// @Description Check if the API is running
+	// @Tags health
+	// @Produce json
+	// @Success 200 {object} map[string]string
+	// @Router /api/health [get]
 	apiBase.GET("/health", func(c *gin.Context) {
 		handler.Health(c, Version)
 	})
@@ -113,12 +129,53 @@ func initRouter() *gin.Engine {
 	apiV1 := r.Group("/api/v1")
 	apiV1.Use(middleware.AuthRequired(appConfig.APISecret))
 
-	// Metrics
+	// @Summary Get all metrics
+	// @Description Get all metrics
+	// @Tags metrics
+	// @Produce json
+	// @Success 200 {object} handler.AllMetricResponse
+	// @Router /api/v1/metrics [get]
 	apiV1.GET("/metrics", handler.Metrics)
+
+	// @Summary Get CPU metrics
+	// @Description Get CPU metrics
+	// @Tags metrics
+	// @Produce json
+	// @Success 200 {object} handler.CPUMetricResponse
+	// @Router /api/v1/metrics/cpu [get]
 	apiV1.GET("/metrics/cpu", handler.MetricsCPU)
+
+	// @Summary Get memory metrics
+	// @Description Get memory metrics
+	// @Tags metrics
+	// @Produce json
+	// @Success 200 {object} handler.MemoryMetricResponse
+	// @Router /api/v1/metrics/memory [get]
 	apiV1.GET("/metrics/memory", handler.MetricsMemory)
+
+	// @Summary Get disk metrics
+	// @Description Get disk metrics
+	// @Tags metrics
+	// @Produce json
+	// @Success 200 {object} handler.DiskMetricResponse
+	// @Router /api/v1/metrics/disk [get]
 	apiV1.GET("/metrics/disk", handler.MetricsDisk)
+
+	// @Summary Get host metrics
+	// @Description Get host metrics
+	// @Tags metrics
+	// @Produce json
+	// @Success 200 {object} handler.HostMetricResponse
+	// @Router /api/v1/metrics/host [get]
 	apiV1.GET("/metrics/host", handler.MetricsHost)
+
+	// Serve other HTML files from the docs directory
+	r.StaticFile("/", "static/index.html")
+	r.StaticFile("/static", "static/index.html")
+	r.Static("/static", "static")
+
+	// Serve Swagger UI at a different path to avoid conflict
+	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return r
 }

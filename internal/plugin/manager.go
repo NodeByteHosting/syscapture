@@ -4,19 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"plugin"
 	"sync"
 
 	"github.com/nodebytehosting/syscapture/internal/handler"
 )
-
-// Plugin is the interface that all plugins must implement
-type Plugin interface {
-	Name() string
-	Init(logger handler.Logger) error
-	Start() error
-	Stop() error
-}
 
 // PluginManager manages the lifecycle of plugins
 type PluginManager struct {
@@ -42,27 +33,15 @@ func (pm *PluginManager) LoadPlugins() error {
 	}
 
 	for _, file := range files {
-		if filepath.Ext(file.Name()) == ".so" {
+		if filepath.Ext(file.Name()) == ".go" {
 			pluginPath := filepath.Join(dir, file.Name())
-			p, err := plugin.Open(pluginPath)
+			pluginName := file.Name()
+			pluginInstance, err := pm.loadPlugin(pluginPath, pluginName)
 			if err != nil {
-				pm.logger.Error(fmt.Sprintf("failed to open plugin %s: %v", file.Name(), err))
+				pm.logger.Error(fmt.Sprintf("failed to load plugin %s: %v", file.Name(), err))
 				continue
 			}
 
-			symbol, err := p.Lookup("NewPlugin")
-			if err != nil {
-				pm.logger.Error(fmt.Sprintf("failed to find NewPlugin symbol in %s: %v", file.Name(), err))
-				continue
-			}
-
-			newPluginFunc, ok := symbol.(func() Plugin)
-			if !ok {
-				pm.logger.Error(fmt.Sprintf("invalid NewPlugin signature in %s", file.Name()))
-				continue
-			}
-
-			pluginInstance := newPluginFunc()
 			if err := pluginInstance.Init(pm.logger); err != nil {
 				pm.logger.Error(fmt.Sprintf("failed to initialize plugin %s: %v", pluginInstance.Name(), err))
 				continue
@@ -73,6 +52,13 @@ func (pm *PluginManager) LoadPlugins() error {
 	}
 
 	return nil
+}
+
+func (pm *PluginManager) loadPlugin(pluginPath, pluginName string) (Plugin, error) {
+	// Use reflection to dynamically load the plugin
+	// This is a placeholder for the actual implementation
+	// You need to implement the logic to dynamically load the Go plugin
+	return nil, fmt.Errorf("dynamic loading of Go plugins is not implemented")
 }
 
 // Register registers a new plugin with the manager

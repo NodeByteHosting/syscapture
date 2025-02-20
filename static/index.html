@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SysCapture - Open-Source Monitoring</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle, #101828 30%, #1e293b 100%);
+            color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px; /* Fixed height */
+        }
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="bg-gray-900 bg-opacity-80 backdrop-blur-md p-4 fixed w-full top-0 shadow-lg z-50 h-16">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="inline-flex items-center space-x-4">
+                <img src="https://elixir.makesmehorny.wtf/users/510065483693817867/ZViCGpz8.png" alt="SysCapture Logo" class="w-10 h-10 rounded-full">
+                <h1 class="text-xl font-bold text-white">SysCapture <span class="text-gray-500">v0.2.0</span></h1>
+            </div>
+            <button id="menu-toggle" class="md:hidden text-white focus:outline-none text-2xl">
+                ☰
+            </button>
+            <ul id="nav-menu" class="hidden md:flex space-x-6">
+                <li><a href="#" class="text-gray-300 hover:text-white">Home</a></li>
+                <li><a href="#about" class="text-gray-300 hover:text-white">About</a></li>
+                <li><a href="#features" class="text-gray-300 hover:text-white">Features</a></li>
+                <li><a href="#installation" class="text-gray-300 hover:text-white">Installation</a></li>
+            </ul>
+        </div>
+        <!-- Mobile Menu -->
+        <ul id="mobile-menu" class="hidden flex-col space-y-3 bg-gray-900 text-center p-4 md:hidden w-full">
+            <li><a href="#" class="text-gray-300 hover:text-white">Home</a></li>
+            <li><a href="#about" class="text-gray-300 hover:text-white">About</a></li>
+            <li><a href="#features" class="text-gray-300 hover:text-white">Features</a></li>
+            <li><a href="#installation" class="text-gray-300 hover:text-white">Installation</a></li>
+        </ul>
+    </nav>
+
+    <!-- Open-Source Banner -->
+    <div class="bg-gradient-to-r from-blue-600 to-purple-500 text-white text-center py-3 shadow-md mt-16">
+        <p class="text-lg font-medium flex items-center justify-center space-x-3">
+            <span class="animate-pulse">🚀</span> 
+            <span>SysCapture is <span class="font-bold">100% open-source</span> and community-driven!</span>
+            <a href="https://github.com/your-repo-link" target="_blank"
+            class="ml-3 bg-gray-900 px-5 py-2 text-sm rounded-lg font-semibold hover:bg-gray-700 transition">
+               ⭐ Star on GitHub
+            </a>
+        </p>
+    </div>
+
+    <!-- Hero Section -->
+    <header class="text-center py-32 px-4">
+        <section id="about" class="fade-in">
+            <div class="max-w-5xl mx-auto px-6">
+                <h2 class="text-5xl font-extrabold text-white leading-tight">What is SysCapture?</h2>
+                <p class="text-gray-300 mt-6 text-xl leading-relaxed">
+                    SysCapture is a powerful, <span class="text-blue-400 font-semibold">lightweight</span> monitoring agent designed for 
+                    <span class="text-purple-400 font-semibold">real-time system insights</span>. Whether you're tracking a single server or an entire fleet, 
+                    SysCapture delivers essential metrics with <span class="text-purple-400 font-semibold">zero bloat</span>.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                    <div class="bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition">
+                        <h3 class="text-2xl font-semibold text-blue-400">🔹 Lightweight</h3>
+                        <p class="text-gray-400 mt-2">Uses minimal resources while providing essential insights.</p>
+                    </div>
+                    <div class="bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition">
+                        <h3 class="text-2xl font-semibold text-purple-400">🔹 API Ready</h3>
+                        <p class="text-gray-400 mt-2">Easily integrates with existing monitoring dashboards.</p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap justify-center mt-12 gap-6">
+                    <a href="#installation" class="bg-blue-500 text-white text-xl font-semibold px-10 py-4 rounded-lg hover:bg-blue-600 transition">
+                        Get Started
+                    </a>
+                    <a href="#installation" class="bg-gray-700 text-white text-xl font-semibold px-10 py-4 rounded-lg hover:bg-gray-800 transition">
+                        Learn More
+                    </a>
+                </div>
+            </div>
+        </section>
+    </header>
+
+    <main class="p-6 md:p-12 pt-16">
+        <!-- Features Section -->
+        <section id="features" class="my-16 text-center fade-in max-w-7xl mx-auto">
+            <h2 class="text-4xl font-bold mb-8">🚀 Features</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition">
+                    <h3 class="text-2xl font-semibold">Real-Time Monitoring</h3>
+                    <p class="text-gray-400 mt-2">Track CPU, memory, disk, and network usage in real time.</p>
+                </div>
+                <div class="bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition">
+                    <h3 class="text-2xl font-semibold">REST API</h3>
+                    <p class="text-gray-400 mt-2">Access your system's metrics via an easy-to-use API.</p>
+                </div>
+                <div class="bg-gray-800 p-8 rounded-xl shadow-lg hover:shadow-2xl transition">
+                    <h3 class="text-2xl font-semibold">Lightweight</h3>
+                    <p class="text-gray-400 mt-2">Designed to run efficiently with minimal system overhead.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Graphs Section -->
+    <section id="graphs" class="my-16 text-center fade-in max-w-6xl mx-auto px-6">
+        <h2 class="text-4xl font-bold mb-8">📊 Demo Monitoring Graphs</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <!-- CPU Usage Graph -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">CPU Usage</h3>
+                <div class="chart-container">
+                    <canvas id="cpuChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Memory Usage Graph -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Memory Usage</h3>
+                <div class="chart-container">
+                    <canvas id="memoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Disk Usage Graph -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Disk Usage</h3>
+                <div class="chart-container">
+                    <canvas id="diskChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Network Activity Graph -->
+            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Network Activity</h3>
+                <div class="chart-container">
+                    <canvas id="networkChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-center py-8">
+        <p>&copy; 2025 NodeByte LTD. All rights reserved.</p>
+    </footer>
+
+    <!-- Chart.js Scripts -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+        const menuToggle = document.getElementById("menu-toggle");
+        const navMenu = document.getElementById("nav-menu");
+        const mobileMenu = document.getElementById("mobile-menu");
+
+        menuToggle.addEventListener("click", function () {
+            mobileMenu.classList.toggle("hidden");
+        });
+
+        // Close mobile menu when clicking outside
+        document.addEventListener("click", function (event) {
+            if (!menuToggle.contains(event.target) && !mobileMenu.contains(event.target)) {
+                mobileMenu.classList.add("hidden");
+            }
+        });
+    });
+
+        const randomData = () => Array.from({ length: 40 }, () => Math.floor(Math.random() * 300));
+
+        const createChart = (ctx, label, color) => {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['1:00 AM', '2:00 AM', '3:00 AM', '4:00 AM', '5:00 AM', '6:00 AM', '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM', '11:00 PM', '12:00 AM'],
+                    datasets: [{
+                        label: label,
+                        data: randomData(),
+                        borderColor: color,
+                        backgroundColor: color + '30',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            createChart(document.getElementById('cpuChart').getContext('2d'), 'CPU Usage (%)', '#ff4c4c');
+            createChart(document.getElementById('memoryChart').getContext('2d'), 'Memory Usage (%)', '#4c9aff');
+            createChart(document.getElementById('diskChart').getContext('2d'), 'Disk Usage (%)', '#4cff88');
+            createChart(document.getElementById('networkChart').getContext('2d'), 'Network Activity (MBps)', '#ffbd4c');
+        });
+    </script>
+
+</body>
+</html>

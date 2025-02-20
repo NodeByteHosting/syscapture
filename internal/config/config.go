@@ -18,7 +18,7 @@ const defaultPort = "42000"
 func NewConfig(port string, apiSecret string, ginMode string, logger handler.Logger) *Config {
 	if port == "" {
 		port = defaultPort
-		logger.Warn("Missign PORT environment variable, using default value: " + defaultPort)
+		logger.Warn("Missing PORT environment variable, using default value: " + defaultPort)
 	}
 
 	// Validate required fields
