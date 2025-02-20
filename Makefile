@@ -38,9 +38,9 @@ clean:
 	@rm -rf $(SWAGGER_DIR)
 
 # Build Documentation for the V2 API Endpoints
-docs-v2:
+docs:
 	@echo "Generating OpenAPI documentation"
-	@swag i -g main.go --dir api/v2 --instanceName v2
+	@swag i -g main.go --dir api
 	@echo "Swagger docs generated in $(SWAGGER_DIR)"
 
 # Install dependencies

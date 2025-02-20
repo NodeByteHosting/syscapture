@@ -3,7 +3,7 @@ package sysfs
 import (
 	"errors"
 
-	"github.com/StackExchange/wmi"
+	"github.com/yusufpapurcu/wmi"
 )
 
 // Win32_TemperatureProbe struct for querying WMI
@@ -21,7 +21,7 @@ func getCPUTemperatureWindows() ([]float32, error) {
 	var sensors []Win32_TemperatureProbe
 	err := wmi.Query("SELECT CurrentTemperature FROM Win32_TemperatureProbe", &sensors)
 	if err != nil || len(sensors) == 0 {
-		return nil, errors.New("unable to read CPU temperature via WMI")
+		return nil, errors.New("unable to read CPU temperature")
 	}
 
 	var temps []float32
@@ -42,7 +42,7 @@ func getCPUFrequencyWindows() (int, error) {
 	var procs []Win32_Processor
 	err := wmi.Query("SELECT CurrentClockSpeed FROM Win32_Processor", &procs)
 	if err != nil || len(procs) == 0 {
-		return 0, errors.New("unable to read CPU frequency via WMI")
+		return 0, errors.New("unable to read CPU frequency")
 	}
 
 	return int(procs[0].CurrentClockSpeed), nil

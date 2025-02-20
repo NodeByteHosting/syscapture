@@ -12,7 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	v2 "github.com/nodebytehosting/syscapture/api/v2"
+	"github.com/nodebytehosting/syscapture/api"
 	_ "github.com/nodebytehosting/syscapture/docs"
 	"github.com/nodebytehosting/syscapture/internal/config"
 	"github.com/nodebytehosting/syscapture/internal/handler"
@@ -106,14 +106,9 @@ func startServer() *http.Server {
 func initRouter() *gin.Engine {
 	r := gin.New()
 
-	apiBase := r.Group("/api")
-	v2.Register(r, appConfig)
+	api.Register(r, appConfig)
 
-	apiBase.GET("/health", func(c *gin.Context) {
-		handler.Health(c, Version)
-	})
-
-	apiBase.GET("/docs/v2/*any", ginSwagger.WrapHandler(swaggerFiles.NewHandler(), ginSwagger.InstanceName("v2")))
+	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.DeepLinking(true)))
 
 	r.StaticFile("/", "static/index.html")
 	r.StaticFile("/static", "static/index.html")

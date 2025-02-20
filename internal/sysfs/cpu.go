@@ -2,9 +2,11 @@ package sysfs
 
 import (
 	"errors"
+	"fmt"
 	"runtime"
 )
 
+// CPUTemperature gets CPU temperature cross-platform
 func CPUTemperature() ([]float32, error) {
 	switch runtime.GOOS {
 	case "windows":
@@ -16,13 +18,17 @@ func CPUTemperature() ([]float32, error) {
 	}
 }
 
+// CPUCurrentFrequency gets CPU frequency cross-platform
 func CPUCurrentFrequency() (int, error) {
-	switch runtime.GOOS {
+	systemName := runtime.GOOS
+	fmt.Printf("Detected system: %s\n", systemName)
+
+	switch systemName {
 	case "windows":
 		return getCPUFrequencyWindows()
 	case "linux":
 		return getCPUFrequencyLinux()
 	default:
-		return 0, errors.New("unsupported OS")
+		return 0, fmt.Errorf("unsupported OS: %s", systemName)
 	}
 }

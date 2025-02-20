@@ -29,9 +29,8 @@ func getCPUTemperatureLinux() ([]float32, error) {
 		"/sys/devices/platform/coretemp.0/hwmon/hwmon*/temp*_input",
 		"/sys/class/hwmon/hwmon*/temp*_input",
 		"/sys/class/thermal/thermal_zone*/temp",
-		"/sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq",
-		"/sys/devices/system/cpu/cpu*/cpufreq/scaling_max_freq",
-		"/sys/devices/system/cpu/cpu*/cpufreq/scaling_min_freq",
+		"/sys/devices/virtual/thermal/thermal_zone*/temp",
+		"/sys/class/hwmon/hwmon*/temp*_input",
 	}
 
 	var temps []float32
@@ -63,15 +62,40 @@ func getCPUTemperatureLinux() ([]float32, error) {
 
 // CPUCurrentFrequency retrieves CPU frequency in MHz on Linux.
 func getCPUFrequencyLinux() (int, error) {
-	data, err := os.ReadFile("/sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq")
-	if err != nil {
-		return 0, err
+	freqPaths := []string{
+		"/sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq",
+		"/sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq", // For multiple CPUs
+		"/proc/cpuinfo", // Fallback to /proc/cpuinfo
 	}
 
-	freq, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err != nil {
-		return 0, err
+	var freq int
+
+	for _, path := range freqPaths {
+		if strings.Contains(path, "cpu*") {
+			// Handle wildcard paths
+			matches, err := filepath.Glob(path)
+			if err != nil {
+				continue
+			}
+			for _, match := range matches {
+				data, err := os.ReadFile(match)
+				if err == nil {
+					freq, err = strconv.Atoi(strings.TrimSpace(string(data)))
+					if err == nil {
+						return freq / 1000, nil // Convert to MHz
+					}
+				}
+			}
+		} else {
+			data, err := os.ReadFile(path)
+			if err == nil {
+				freq, err = strconv.Atoi(strings.TrimSpace(string(data)))
+				if err == nil {
+					return freq / 1000, nil // Convert to MHz
+				}
+			}
+		}
 	}
 
-	return freq / 1000, nil
+	return 0, errors.New("unable to read CPU frequency")
 }
