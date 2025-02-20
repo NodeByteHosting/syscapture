@@ -28,6 +28,10 @@ func getCPUTemperatureLinux() ([]float32, error) {
 	corePaths := []string{
 		"/sys/devices/platform/coretemp.0/hwmon/hwmon*/temp*_input",
 		"/sys/class/hwmon/hwmon*/temp*_input",
+		"/sys/class/thermal/thermal_zone*/temp",
+		"/sys/devices/system/cpu/cpu*/cpufreq/scaling_cur_freq",
+		"/sys/devices/system/cpu/cpu*/cpufreq/scaling_max_freq",
+		"/sys/devices/system/cpu/cpu*/cpufreq/scaling_min_freq",
 	}
 
 	var temps []float32
