@@ -3,6 +3,7 @@ module github.com/nodebytehosting/syscapture
 go 1.23.1
 
 require (
+	github.com/StackExchange/wmi v1.2.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/joho/godotenv v1.5.1
 	github.com/shirou/gopsutil/v4 v4.25.1
@@ -56,3 +57,5 @@ require (
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/nodebytehosting/syscapture => ../path/to/local/syscapture

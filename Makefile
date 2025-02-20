@@ -1,39 +1,46 @@
 # Variables
 APP_NAME=syscapture
+BUILD_DIR=dist
 CLIENT_DIR=client
-BUILD_DIR=build
 SWAGGER_DIR=docs
-PORT=42000
 
 # Targets
 .PHONY: all build run clean swagger
 
 all: build
 
+# Install dependencies
+install:
+	@echo "Installing dependencies..."
+	@go mod tidy
+	@go get -u github.com/swaggo/gin-swagger
+	@go get -u github.com/swaggo/files
+
 # Build the application
 build:
-	@echo "Building $(APP_NAME)..."
-	@go build -o $(APP_NAME) ./$(CLIENT_DIR)/main.go
+	@echo "Building $(APP_NAME), please wait..."
+	@go build -o $(BUILD_DIR)/$(APP_NAME) ./$(CLIENT_DIR)/main.go
+
 
 # Run the application
 run: build
-	@echo "Starting $(APP_NAME) on port $(PORT)..."
-	@./$(APP_NAME)
+	@echo "Starting $(APP_NAME), please wait..."
+	@./$(BUILD_DIR)/$(APP_NAME)
 
 run-client:
-	@echo "Starting $(APP_NAME) on port $(PORT)..."
+	@echo "Starting $(APP_NAME), please wait... "
 	@go run $(CLIENT_DIR)/main.go
 
 # Clean up build artifacts
 clean:
-	@echo "Cleaning up..."
+	@echo "Cleaning up build artifacts"
 	@rm -f $(APP_NAME)
 	@rm -rf $(SWAGGER_DIR)
 
-# Generate Swagger documentation
-swagger:
-	@echo "Generating Swagger docs..."
-	@cd $(CLIENT_DIR) && swag init -g main.go
+# Build Documentation for the V2 API Endpoints
+docs-v2:
+	@echo "Generating OpenAPI documentation"
+	@swag i -g main.go --dir api/v2 --instanceName v2
 	@echo "Swagger docs generated in $(SWAGGER_DIR)"
 
 # Install dependencies
@@ -65,3 +72,7 @@ vet:
 
 # Run all checks (fmt, lint, vet)
 check: fmt lint vet 
+
+version:
+	@echo "Checking for the Version Information"
+	@go run $(CLIENT_DIR)/main.go --version

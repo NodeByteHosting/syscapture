@@ -1,0 +1,76 @@
+basePath: /api/v2
+definitions:
+  v2.CPUData:
+    properties:
+      current_frequency:
+        type: integer
+      frequency:
+        type: number
+      logical_core:
+        type: integer
+      physical_core:
+        type: integer
+    type: object
+  v2.DiskData:
+    properties:
+      device:
+        type: string
+      free_bytes:
+        type: integer
+      total_bytes:
+        type: integer
+      usage_percent:
+        type: number
+    type: object
+  v2.HostData:
+    properties:
+      kernel_version:
+        type: string
+      os:
+        type: string
+      platform:
+        type: string
+    type: object
+  v2.MemoryData:
+    properties:
+      available_bytes:
+        type: integer
+      total_bytes:
+        type: integer
+      usage_percent:
+        type: number
+      used_bytes:
+        type: integer
+    type: object
+  v2.MetricsData:
+    properties:
+      cpu:
+        $ref: '#/definitions/v2.CPUData'
+      disk:
+        $ref: '#/definitions/v2.DiskData'
+      host:
+        $ref: '#/definitions/v2.HostData'
+      memory:
+        $ref: '#/definitions/v2.MemoryData'
+    type: object
+info:
+  contact:
+    url: https://nodebyte.host
+  description: OpenAPI documentation for SysCapture API
+  title: SysCapture API
+  version: 0.2.0
+paths:
+  /api/v2/metrics:
+    get:
+      description: Get all system metrics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v2.MetricsData'
+      summary: Get all system metrics
+      tags:
+      - metrics
+swagger: "2.0"
