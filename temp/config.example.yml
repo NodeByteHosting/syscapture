@@ -4,7 +4,7 @@ gin_mode: "release"  # Gin framework mode (release or debug)
 
 notify:
   enabled: true  # Enable the notify plugin
-  discord_webhook: "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz"  # Discord webhook URL
+  discord_webhook: "https://discord.com/api/webhooks/your_webhook_id/your_webhook_token"  # Discord webhook URL
 
   # Email configuration
   email_provider: "sendgrid"  # Supported providers: postmark, sendgrid, smtp

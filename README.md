@@ -9,6 +9,7 @@
   - [General Installation](#general-installation)
   - [Systemd Setup Guide](#systemd-setup-guide)
   - [NGINX Setup Guide](#nginx-setup-guide)
+- [Configuration Setup](#configuration-setup)
 - [Usage](#usage)
 - [API Documentation](#api-documentation)
 - [Contributing](#contributing)
@@ -100,6 +101,14 @@ sudo ln -s /etc/nginx/sites-available/syscapture /etc/nginx/sites-enabled/
 sudo systemctl restart nginx
 ```
 
+## Configuration Setup
+
+To set up the configuration for this project, please refer to the example files available in the `temp` directory. You can find:
+- `.env.example`: This file contains environment variables needed for the application.
+- `config.example.yml`: This file contains configuration settings for the application.
+
+You can move **one** of these files to your project's root directory and edit it to customize the configuration.
+
 ## Usage
 After installation, you can access SysCapture by navigating to `http://localhost:42000/` in your web browser. The application will provide real-time monitoring data.
 
@@ -110,13 +119,8 @@ SysCapture provides a RESTful API for accessing system metrics. The following en
 - `GET /api/metrics/memory`: Retrieve memory usage metrics.
 - `GET /api/metrics/disk`: Retrieve disk usage metrics.
 
-Refer to the [API Documentation](api.html) for detailed information on available endpoints.
-
 ## Contributing
-We welcome contributions! Please refer to the [Contributing Guide](contributing.html) for more information on how to get involved. Follow our coding conventions and include tests where applicable.
+We welcome contributions! Please refer to the [Contributing Guide](CONTRIBUTING.md) for more information on how to get involved. Follow our coding conventions and include tests where applicable.
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Contact Information
-For any inquiries, please contact the maintainers at [your_email@example.com].
