@@ -37,6 +37,9 @@ func Register(router *gin.Engine, appConfig *config.Config) {
 
 	apiRouter.Use(middleware.AuthRequired(appConfig.APISecret))
 
+	// Home endpoint
+	baseRouter.GET("/", Home)
+
 	// Health check endpoint
 	baseRouter.GET("/health", HealthCheck)
 
@@ -48,6 +51,18 @@ func Register(router *gin.Engine, appConfig *config.Config) {
 
 	// Get disk metrics endpoint
 	apiRouter.GET("/metrics/disk", MetricsDisk)
+
+	// Get host metrics endpoint
+	apiRouter.GET("/metrics/host", MetricsHost)
+
+	// Get memory metrics endpoint
+	apiRouter.GET("/metrics/memory", MetricsMemory)
+
+	// Get network metrics endpoint
+	apiRouter.GET("/metrics/network", MetricsNetwork)
+
+	// Set the custom 404 handler
+	router.NoRoute(NotFound)
 }
 
 // handleMetricResponse sends a JSON response with the collected metrics and any errors.

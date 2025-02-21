@@ -38,15 +38,20 @@ For detailed installation and setup instructions, please refer to the following 
    ```
 2. Install dependencies:
    ```bash
-   go mod tidy
+   make install
    ```
 3. Build the application:
    ```bash
    make build
    ```
-4. Run the application:
+4. Run the application (development mode):
    ```bash
    make dev
+   ```
+
+5. Run the application (production mode):
+   ```bash
+   make start
    ```
 
 ### Systemd Setup Guide
