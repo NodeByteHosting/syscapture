@@ -18,6 +18,7 @@ type NotificationsConfig struct {
 	EmailFrom       string  `yaml:"email_from" env:"EMAIL_FROM"`
 	EmailTo         string  `yaml:"email_to" env:"EMAIL_TO"`
 	PostmarkToken   string  `yaml:"postmark_token" env:"POSTMARK_TOKEN"`
+	ResendAPIKey    string  `yaml:"resend_api_key" env:"RESEND_API_KEY"`
 	SendgridKey     string  `yaml:"sendgrid_key" env:"SENDGRID_KEY"`
 	SMTPHost        string  `yaml:"smtp_host" env:"SMTP_HOST"`
 	SMTPPort        string  `yaml:"smtp_port" env:"SMTP_PORT"`

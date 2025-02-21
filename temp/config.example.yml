@@ -7,11 +7,20 @@ notify:
   discord_webhook: "https://discord.com/api/webhooks/your_webhook_id/your_webhook_token"  # Discord webhook URL
 
   # Email configuration
-  email_provider: "sendgrid"  # Supported providers: postmark, sendgrid, smtp
+  email_provider: "sendgrid"  # Supported providers: resend, postmark, sendgrid, smtp
   email_from: "you@example.com"  # Sender's email address
   email_to: "recipient@example.com"  # Recipient's email address
+
+  # Postmark configuration
   postmark_token: "your_postmark_token"  # Postmark API token (if using Postmark)
+
+  # SendGrid configuration
   sendgrid_key: "your_sendgrid_key"  # SendGrid API key (if using SendGrid)
+
+  # Resend configuration
+  resend_api_key: "your_resend_api_key"  # Resend API key (if using Resend)
+
+  # SMTP configuration
   smtp_host: "smtp.example.com"  # SMTP host (if using SMTP)
   smtp_port: "587"  # SMTP port (if using SMTP)
   smtp_username: "your_smtp_username"  # SMTP username (if using SMTP)
