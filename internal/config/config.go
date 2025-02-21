@@ -29,7 +29,7 @@ type NotificationsConfig struct {
 	MonitorCPU      bool    `yaml:"monitor_cpu" env:"MONITOR_CPU"`
 	MonitorMemory   bool    `yaml:"monitor_memory" env:"MONITOR_MEMORY"`
 	MonitorDisk     bool    `yaml:"monitor_disk" env:"MONITOR_DISK"`
-	Enabled        bool    `yaml:"enabled" env:"NOTIFICATIONS_ENABLED"`
+	Enabled         bool    `yaml:"enabled" env:"NOTIFICATIONS_ENABLED"`
 }
 
 type Config struct {
@@ -77,15 +77,26 @@ func Default() *Config {
 }
 
 // LoadConfig loads the configuration from both .env and YAML files
-func LoadConfig(yamlFile string) (*Config, error) {
-	// Load environment variables from .env file
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, proceeding with defaults.")
+func LoadConfig(yamlFile string, envFile string, logger handler.Logger) (*Config, error) {
+	// Load environment variables from the specified .env file if provided
+	if envFile != "" {
+		if err := godotenv.Load(envFile); err != nil {
+			logger.Warn("No .env file found, proceeding with defaults.")
+		} else {
+			logger.Info("Loaded environment variables from %s", envFile)
+		}
+	} else {
+		if err := godotenv.Load(); err != nil {
+			logger.Warn("No .env file found, proceeding with defaults.")
+		} else {
+			logger.Info("Loaded environment variables from default .env")
+		}
 	}
 
 	// Load YAML configuration
 	file, err := os.Open(yamlFile)
 	if err != nil {
+		logger.Info("Error opening YAML config file: %v", err)
 		return nil, err
 	}
 	defer file.Close()
@@ -93,8 +104,12 @@ func LoadConfig(yamlFile string) (*Config, error) {
 	var config Config
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&config); err != nil {
+		logger.Info("Error decoding YAML config: %v", err)
 		return nil, err
 	}
+
+	logger.Info("Loaded configuration from %s", yamlFile)
+	logger.Info("Configuration loaded successfully")
 
 	// Override with environment variables if they exist
 	if envEnabled := os.Getenv("NOTIFICATIONS_ENABLED"); envEnabled != "" {
@@ -172,6 +187,33 @@ func LoadConfig(yamlFile string) (*Config, error) {
 	if envMonitorDisk := os.Getenv("MONITOR_DISK"); envMonitorDisk != "" {
 		config.Notifications.MonitorDisk = envMonitorDisk == "true"
 	}
+
+	logger.Info("Loaded configuration: %+v", config)
+	logger.Info("Port: %s", config.Port)
+	logger.Info("APISecret: %s", config.APISecret)
+	logger.Info("GinMode: %s", config.GinMode)
+	logger.Info("Notifications:")
+	logger.Info("  Provider: %s", config.Notifications.Provider)
+	logger.Info("  DiscordWebhook: %s", config.Notifications.DiscordWebhook)
+	logger.Info("  SlackWebhook: %s", config.Notifications.SlackWebhook)
+	logger.Info("  EmailProvider: %s", config.Notifications.EmailProvider)
+	logger.Info("  EmailFrom: %s", config.Notifications.EmailFrom)
+	logger.Info("  EmailTo: %s", config.Notifications.EmailTo)
+	logger.Info("  PostmarkToken: %s", config.Notifications.PostmarkToken)
+	logger.Info("  SendgridKey: %s", config.Notifications.SendgridKey)
+	logger.Info("  SMTPHost: %s", config.Notifications.SMTPHost)
+	logger.Info("  SMTPPort: %s", config.Notifications.SMTPPort)
+	logger.Info("  SMTPUsername: %s", config.Notifications.SMTPUsername)
+	logger.Info("  SMTPPassword: %s", config.Notifications.SMTPPassword)
+	logger.Info("  CPUThreshold: %f", config.Notifications.CPUThreshold)
+	logger.Info("  MemoryThreshold: %f", config.Notifications.MemoryThreshold)
+	logger.Info("  DiskThreshold: %f", config.Notifications.DiskThreshold)
+	logger.Info("  MonitorCPU: %t", config.Notifications.MonitorCPU)
+	logger.Info("  MonitorMemory: %t", config.Notifications.MonitorMemory)
+	logger.Info("  MonitorDisk: %t", config.Notifications.MonitorDisk)
+	logger.Info("  Enabled: %t", config.Notifications.Enabled)
+
+	logger.Info("Configuration overrides applied successfully")
 
 	return &config, nil
 }

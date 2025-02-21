@@ -10,10 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"io/ioutil"
-
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"github.com/nodebytehosting/syscapture/api"
 	_ "github.com/nodebytehosting/syscapture/docs"
 	"github.com/nodebytehosting/syscapture/internal/config"
@@ -21,7 +18,6 @@ import (
 	"github.com/nodebytehosting/syscapture/internal/plugin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -58,13 +54,13 @@ func main() {
 }
 
 func setup() error {
-	if err := loadEnv(); err != nil {
-		logger.Error(fmt.Sprintf("Error loading environment variables: %v", err))
-	}
-
-	if err := loadConfig(); err != nil {
+	var err error
+	appConfig, err = config.LoadConfig("config.yml", ".env", logger)
+	if err != nil {
 		return err
 	}
+	logger.Info("Configuration loaded:")
+	logger.Info("  Port: %s", appConfig.Port)
 
 	if *flag.Bool("version", false, "Display the current version of SysCapture") {
 		logger.Info("SysCapture version: %s", Version)
@@ -72,40 +68,6 @@ func setup() error {
 	}
 
 	initLogger()
-
-	return nil
-}
-
-func loadEnv() error {
-	if err := godotenv.Load(); err != nil {
-		if os.IsNotExist(err) {
-			logger.Warn("No .env file found, proceeding without it.")
-			return nil // Do not return an error if the .env file is missing
-		}
-		return fmt.Errorf("error loading .env file: %v", err)
-	}
-	return nil
-}
-
-func loadConfig() error {
-	yamlFile, err := ioutil.ReadFile("config.yml")
-	if err != nil {
-		return fmt.Errorf("error reading config.yml file: %v", err)
-	}
-
-	var configData config.Config
-	if err := yaml.Unmarshal(yamlFile, &configData); err != nil {
-		return fmt.Errorf("error unmarshalling config.yml: %v", err)
-	}
-
-	// Set the loaded configuration values
-	appConfig = &configData
-	logger.Info("Configuration loaded successfully from config.yml: %+v", appConfig)
-
-	// In the loadConfig function
-	if appConfig.Notifications.DiscordWebhook == "" {
-		logger.Warn("No notification provider configured. Notifications will be disabled.")
-	}
 
 	return nil
 }

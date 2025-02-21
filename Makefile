@@ -23,13 +23,18 @@ build:
 
 
 # Run the application
-run: build
+start: build
 	@echo "Starting $(APP_NAME), please wait..."
 	@./$(BUILD_DIR)/$(APP_NAME)
 
-run-client:
+dev:
 	@echo "Starting $(APP_NAME), please wait... "
 	@go run $(CLIENT_DIR)/main.go
+
+# Run a version check
+version:
+	@echo "Checking for the Version Information"
+	@go run ./$(BUILD_DIR)/$(APP_NAME) --version
 
 # Clean up build artifacts
 clean:
@@ -72,7 +77,3 @@ vet:
 
 # Run all checks (fmt, lint, vet)
 check: fmt lint vet 
-
-version:
-	@echo "Checking for the Version Information"
-	@go run $(CLIENT_DIR)/main.go --version

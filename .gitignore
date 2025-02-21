@@ -20,6 +20,7 @@ go.work.sum
 # Binaries and distribution directories
 bin/
 dist/
+docs/
 
 # Temporary files
 client/temp.go

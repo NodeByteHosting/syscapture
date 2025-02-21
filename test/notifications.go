@@ -2,10 +2,11 @@ package notify
 
 import (
 	"testing"
-	"github.com/stretchr/testify/assert"
-	"github.com/nodebytehosting/syscapture/plugins/notify"
-	"github.com/nodebytehosting/syscapture/internal/handler"
+
 	"github.com/nodebytehosting/syscapture/internal/config"
+	"github.com/nodebytehosting/syscapture/internal/handler"
+	"github.com/nodebytehosting/syscapture/plugins/notify"
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
 
@@ -15,7 +16,7 @@ func setup(t *testing.T) {
 	yamlData := `
 notifications:
   enabled: true
-  discord_webhook: "https://example.com/webhook"
+  discord_webhook: "https://discord.com/api/webhooks/1342430101782007848/mZ2mhkl7_HrQ8iBID2BLNEZxhPG15h3UA6_VVJyJBZGZkYlb1zEC12NK02fAAdBXtBgO"
 `
 	var configData config.Config
 	if err := yaml.Unmarshal([]byte(yamlData), &configData); err != nil {
@@ -30,7 +31,7 @@ func TestNotifyPlugin_Init(t *testing.T) {
 	logger := handler.NewSysCaptureLogger()
 	plugin.SetDiscordWebhook(appConfig.Notifications.DiscordWebhook)
 	plugin.Init(logger)
-	
+
 	// Test initialization
 	err := plugin.Init(logger)
 	assert.NoError(t, err)
@@ -43,7 +44,7 @@ func TestNotifyPlugin_Start(t *testing.T) {
 	logger := handler.NewSysCaptureLogger()
 	plugin.SetDiscordWebhook(appConfig.Notifications.DiscordWebhook)
 	plugin.Init(logger)
-	
+
 	// Test starting the plugin
 	err := plugin.Start()
 	assert.NoError(t, err)
@@ -56,7 +57,7 @@ func TestNotifyPlugin_Stop(t *testing.T) {
 	plugin.SetDiscordWebhook(appConfig.Notifications.DiscordWebhook)
 	logger := handler.NewSysCaptureLogger()
 	plugin.Init(logger)
-	
+
 	// Test stopping the plugin
 	err := plugin.Stop()
 	assert.NoError(t, err)
