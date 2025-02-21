@@ -10,7 +10,7 @@ import (
 // @Tags metrics
 // @Produce json
 // @Success 200 {object} HostData
-// @Router /api/metrics/host [get]
+// @Router /metrics/host [get]
 // @Security bearerAuth
 func MetricsHost(c *gin.Context) {
 	metrics, errors := metric.GetHostInformation()

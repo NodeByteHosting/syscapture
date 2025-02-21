@@ -42,6 +42,12 @@ func Register(router *gin.Engine, appConfig *config.Config) {
 
 	// Get all metrics endpoint
 	apiRouter.GET("/metrics", GetAllMetrics)
+
+	// Get cpu metrics endpoint
+	apiRouter.GET("/metrics/cpu", MetricsCPU)
+
+	// Get disk metrics endpoint
+	apiRouter.GET("/metrics/disk", MetricsDisk)
 }
 
 // handleMetricResponse sends a JSON response with the collected metrics and any errors.

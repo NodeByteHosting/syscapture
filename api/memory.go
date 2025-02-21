@@ -10,7 +10,7 @@ import (
 // @Tags metrics
 // @Produce json
 // @Success 200 {object} MemoryData
-// @Router /api/metrics/memory [get]
+// @Router /metrics/memory [get]
 // @Security bearerAuth
 func MetricsMemory(c *gin.Context) {
 	metrics, errors := metric.CollectMemoryMetrics()

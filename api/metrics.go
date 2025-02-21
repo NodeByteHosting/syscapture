@@ -10,7 +10,7 @@ import (
 // @Tags metrics
 // @Produce json
 // @Success 200 {object} MetricsData
-// @Router /api/metrics [get]
+// @Router /metrics [get]
 // @Security bearerAuth
 func GetAllMetrics(c *gin.Context) {
 	metrics, errors := metric.GetAllSystemMetrics()
@@ -18,8 +18,9 @@ func GetAllMetrics(c *gin.Context) {
 }
 
 type MetricsData struct {
-	CPU    CPUData    `json:"cpu"`
-	Memory MemoryData `json:"memory"`
-	Disk   DiskData   `json:"disk"`
-	Host   HostData   `json:"host"`
+	CPU     CPUData     `json:"cpu"`
+	Memory  MemoryData  `json:"memory"`
+	Disk    DiskData    `json:"disk"`
+	Host    HostData    `json:"host"`
+	Network NetworkData `json:"network"`
 }

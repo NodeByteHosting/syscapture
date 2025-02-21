@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"plugin"
 	"sync"
 
 	"github.com/nodebytehosting/syscapture/internal/handler"
@@ -27,23 +28,32 @@ func NewPluginManager(logger handler.Logger) *PluginManager {
 // LoadPlugins loads plugins from the "plugins" directory
 func (pm *PluginManager) LoadPlugins() error {
 	dir := "./plugins"
+	pm.logger.Info(fmt.Sprintf("Loading plugins from directory: %s", dir))
+
 	files, err := os.ReadDir(dir)
 	if err != nil {
+		pm.logger.Error(fmt.Sprintf("Failed to read plugin directory: %v", err))
 		return fmt.Errorf("failed to read plugin directory: %v", err)
 	}
 
+	if len(files) == 0 {
+		pm.logger.Warn("No plugins found in the plugins directory")
+		return nil
+	}
+
 	for _, file := range files {
-		if filepath.Ext(file.Name()) == ".go" {
+		if filepath.Ext(file.Name()) == ".so" {
 			pluginPath := filepath.Join(dir, file.Name())
-			pluginName := file.Name()
-			pluginInstance, err := pm.loadPlugin(pluginPath, pluginName)
+			pm.logger.Info(fmt.Sprintf("Loading plugin: %s", pluginPath))
+
+			pluginInstance, err := pm.loadPlugin(pluginPath)
 			if err != nil {
-				pm.logger.Error(fmt.Sprintf("failed to load plugin %s: %v", file.Name(), err))
+				pm.logger.Error(fmt.Sprintf("Failed to load plugin %s: %v", file.Name(), err))
 				continue
 			}
 
 			if err := pluginInstance.Init(pm.logger); err != nil {
-				pm.logger.Error(fmt.Sprintf("failed to initialize plugin %s: %v", pluginInstance.Name(), err))
+				pm.logger.Error(fmt.Sprintf("Failed to initialize plugin %s: %v", pluginInstance.Name(), err))
 				continue
 			}
 
@@ -54,11 +64,23 @@ func (pm *PluginManager) LoadPlugins() error {
 	return nil
 }
 
-func (pm *PluginManager) loadPlugin(pluginPath, pluginName string) (Plugin, error) {
-	// Use reflection to dynamically load the plugin
-	// This is a placeholder for the actual implementation
-	// You need to implement the logic to dynamically load the Go plugin
-	return nil, fmt.Errorf("dynamic loading of Go plugins is not implemented")
+func (pm *PluginManager) loadPlugin(pluginPath string) (Plugin, error) {
+	p, err := plugin.Open(pluginPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open plugin: %v", err)
+	}
+
+	sym, err := p.Lookup("NewPlugin")
+	if err != nil {
+		return nil, fmt.Errorf("failed to lookup symbol: %v", err)
+	}
+
+	newPlugin, ok := sym.(func() Plugin)
+	if !ok {
+		return nil, fmt.Errorf("invalid plugin constructor")
+	}
+
+	return newPlugin(), nil
 }
 
 // Register registers a new plugin with the manager
@@ -95,11 +117,13 @@ func (pm *PluginManager) StopPlugin(name string) error {
 
 // StartAll starts all registered plugins
 func (pm *PluginManager) StartAll() error {
+	pm.logger.Info("Starting all plugins...")
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 	for name, plugin := range pm.plugins {
 		pm.logger.Info(fmt.Sprintf("Starting plugin: %s", name))
 		if err := plugin.Start(); err != nil {
+			pm.logger.Error(fmt.Sprintf("Failed to start plugin %s: %v", name, err))
 			return fmt.Errorf("failed to start plugin %s: %v", name, err)
 		}
 	}

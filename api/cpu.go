@@ -18,7 +18,7 @@ type CPUData struct {
 // @Tags metrics
 // @Produce json
 // @Success 200 {object} CPUData
-// @Router /api/metrics/cpu [get]
+// @Router /metrics/cpu [get]
 // @Security bearerAuth
 func MetricsCPU(c *gin.Context) {
 	cpuMetrics, metricsErrs := metric.CollectCPUMetrics()

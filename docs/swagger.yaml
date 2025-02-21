@@ -72,6 +72,19 @@ definitions:
         $ref: '#/definitions/api.HostData'
       memory:
         $ref: '#/definitions/api.MemoryData'
+      network:
+        $ref: '#/definitions/api.NetworkData'
+    type: object
+  api.NetworkData:
+    properties:
+      bytes_recv:
+        type: integer
+      bytes_sent:
+        type: integer
+      packets_recv:
+        type: integer
+      packets_sent:
+        type: integer
     type: object
 info:
   contact:
@@ -85,7 +98,20 @@ info:
   title: SysCapture API
   version: 0.2.0
 paths:
-  /api/metrics:
+  /health:
+    get:
+      description: View the health status of the service
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.HealthCheckResponse'
+      summary: Health Check
+      tags:
+      - health
+  /metrics:
     get:
       description: View a collection of all host system metrics
       produces:
@@ -100,7 +126,7 @@ paths:
       summary: Get all system metrics
       tags:
       - metrics
-  /api/metrics/cpu:
+  /metrics/cpu:
     get:
       description: View cpu usage and statistics of the host machine
       produces:
@@ -115,7 +141,7 @@ paths:
       summary: Get cpu information
       tags:
       - metrics
-  /api/metrics/disk:
+  /metrics/disk:
     get:
       description: View disk usage and statistics of the host machine
       produces:
@@ -130,7 +156,7 @@ paths:
       summary: Get disk information
       tags:
       - metrics
-  /api/metrics/host:
+  /metrics/host:
     get:
       description: View some information about the host machine
       produces:
@@ -145,7 +171,7 @@ paths:
       summary: Get host information
       tags:
       - metrics
-  /api/metrics/memory:
+  /metrics/memory:
     get:
       description: View memory usage and statistics of the host machine
       produces:
@@ -160,19 +186,21 @@ paths:
       summary: Get memory information
       tags:
       - metrics
-  /health:
+  /metrics/network:
     get:
-      description: View the health status of the service
+      description: View Network usage and statistics of the host machine
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.HealthCheckResponse'
-      summary: Health Check
+            $ref: '#/definitions/api.NetworkData'
+      security:
+      - bearerAuth: []
+      summary: Get Network Information
       tags:
-      - health
+      - metrics
 securityDefinitions:
   bearerAuth:
     in: header

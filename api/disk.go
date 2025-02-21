@@ -10,7 +10,7 @@ import (
 // @Tags metrics
 // @Produce json
 // @Success 200 {object} DiskData
-// @Router /api/metrics/disk [get]
+// @Router /metrics/disk [get]
 // @Security bearerAuth
 func MetricsDisk(c *gin.Context) {
 	metrics, errors := metric.CollectDiskMetrics()

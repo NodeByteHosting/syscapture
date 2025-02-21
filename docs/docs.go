@@ -23,7 +23,27 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/metrics": {
+        "/health": {
+            "get": {
+                "description": "View the health status of the service",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health Check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.HealthCheckResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics": {
             "get": {
                 "security": [
                     {
@@ -48,7 +68,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/metrics/cpu": {
+        "/metrics/cpu": {
             "get": {
                 "security": [
                     {
@@ -73,7 +93,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/metrics/disk": {
+        "/metrics/disk": {
             "get": {
                 "security": [
                     {
@@ -98,7 +118,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/metrics/host": {
+        "/metrics/host": {
             "get": {
                 "security": [
                     {
@@ -123,7 +143,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/metrics/memory": {
+        "/metrics/memory": {
             "get": {
                 "security": [
                     {
@@ -148,21 +168,26 @@ const docTemplate = `{
                 }
             }
         },
-        "/health": {
+        "/metrics/network": {
             "get": {
-                "description": "View the health status of the service",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "View Network usage and statistics of the host machine",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "health"
+                    "metrics"
                 ],
-                "summary": "Health Check",
+                "summary": "Get Network Information",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.HealthCheckResponse"
+                            "$ref": "#/definitions/api.NetworkData"
                         }
                     }
                 }
@@ -280,6 +305,26 @@ const docTemplate = `{
                 },
                 "memory": {
                     "$ref": "#/definitions/api.MemoryData"
+                },
+                "network": {
+                    "$ref": "#/definitions/api.NetworkData"
+                }
+            }
+        },
+        "api.NetworkData": {
+            "type": "object",
+            "properties": {
+                "bytes_recv": {
+                    "type": "integer"
+                },
+                "bytes_sent": {
+                    "type": "integer"
+                },
+                "packets_recv": {
+                    "type": "integer"
+                },
+                "packets_sent": {
+                    "type": "integer"
                 }
             }
         }

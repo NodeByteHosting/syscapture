@@ -16,7 +16,27 @@
     },
     "basePath": "/api",
     "paths": {
-        "/api/metrics": {
+        "/health": {
+            "get": {
+                "description": "View the health status of the service",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health Check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.HealthCheckResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics": {
             "get": {
                 "security": [
                     {
@@ -41,7 +61,7 @@
                 }
             }
         },
-        "/api/metrics/cpu": {
+        "/metrics/cpu": {
             "get": {
                 "security": [
                     {
@@ -66,7 +86,7 @@
                 }
             }
         },
-        "/api/metrics/disk": {
+        "/metrics/disk": {
             "get": {
                 "security": [
                     {
@@ -91,7 +111,7 @@
                 }
             }
         },
-        "/api/metrics/host": {
+        "/metrics/host": {
             "get": {
                 "security": [
                     {
@@ -116,7 +136,7 @@
                 }
             }
         },
-        "/api/metrics/memory": {
+        "/metrics/memory": {
             "get": {
                 "security": [
                     {
@@ -141,21 +161,26 @@
                 }
             }
         },
-        "/health": {
+        "/metrics/network": {
             "get": {
-                "description": "View the health status of the service",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "View Network usage and statistics of the host machine",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "health"
+                    "metrics"
                 ],
-                "summary": "Health Check",
+                "summary": "Get Network Information",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.HealthCheckResponse"
+                            "$ref": "#/definitions/api.NetworkData"
                         }
                     }
                 }
@@ -273,6 +298,26 @@
                 },
                 "memory": {
                     "$ref": "#/definitions/api.MemoryData"
+                },
+                "network": {
+                    "$ref": "#/definitions/api.NetworkData"
+                }
+            }
+        },
+        "api.NetworkData": {
+            "type": "object",
+            "properties": {
+                "bytes_recv": {
+                    "type": "integer"
+                },
+                "bytes_sent": {
+                    "type": "integer"
+                },
+                "packets_recv": {
+                    "type": "integer"
+                },
+                "packets_sent": {
+                    "type": "integer"
                 }
             }
         }
