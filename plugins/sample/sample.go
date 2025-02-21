@@ -24,17 +24,17 @@ func (p *SamplePlugin) Name() string {
 
 func (p *SamplePlugin) Init(logger handler.Logger) error {
 	p.logger = logger
-	p.logger.Info("Initializing SamplePlugin")
+	p.logger.Info("Initializing %s", "SamplePlugin")
 	return nil
 }
 
 func (p *SamplePlugin) Start() error {
-	p.logger.Info("SamplePlugin is now running")
+	p.logger.Info("%s is now running", "SamplePlugin")
 	return nil
 }
 
 func (p *SamplePlugin) Stop() error {
-	p.logger.Info("SamplePlugin has been stopped")
+	p.logger.Info("%s has been stopped", "SamplePlugin")
 	return nil
 }
 

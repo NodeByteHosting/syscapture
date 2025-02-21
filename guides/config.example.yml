@@ -1,0 +1,29 @@
+syscapture:
+  port: "42000"  # Port for the syscapture application
+  api_secret: "your_api_secret"  # API secret for authentication
+  gin_mode: "release"  # Gin framework mode (release or debug)
+
+notify:
+  enabled: true  # Enable the notify plugin
+  discord_webhook: "https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz"  # Discord webhook URL
+
+  # Email configuration
+  email_provider: "sendgrid"  # Supported providers: postmark, sendgrid, smtp
+  email_from: "you@example.com"  # Sender's email address
+  email_to: "recipient@example.com"  # Recipient's email address
+  postmark_token: "your_postmark_token"  # Postmark API token (if using Postmark)
+  sendgrid_key: "your_sendgrid_key"  # SendGrid API key (if using SendGrid)
+  smtp_host: "smtp.example.com"  # SMTP host (if using SMTP)
+  smtp_port: "587"  # SMTP port (if using SMTP)
+  smtp_username: "your_smtp_username"  # SMTP username (if using SMTP)
+  smtp_password: "your_smtp_password"  # SMTP password (if using SMTP)
+
+  # Monitoring thresholds
+  cpu_threshold: 80.0  # CPU usage threshold for notifications
+  memory_threshold: 75.0  # Memory usage threshold for notifications
+  disk_threshold: 90.0  # Disk usage threshold for notifications
+
+  # Monitoring settings
+  monitor_cpu: true  # Monitor CPU usage
+  monitor_memory: true  # Monitor memory usage
+  monitor_disk: true  # Monitor disk usage

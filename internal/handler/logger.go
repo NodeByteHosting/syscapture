@@ -22,7 +22,7 @@ const (
 // Logger is the interface for logging
 type Logger interface {
 	Debug(msg string)
-	Info(msg string)
+	Info(msg string, args ...interface{})
 	Warn(msg string)
 	Error(msg string)
 	SetLevel(level LogLevel)
@@ -141,8 +141,9 @@ func (l *SysCaptureLogger) Debug(msg string) {
 }
 
 // Info logs an info message
-func (l *SysCaptureLogger) Info(msg string) {
-	l.log(INFO, msg)
+func (l *SysCaptureLogger) Info(msg string, args ...interface{}) {
+	formattedMsg := fmt.Sprintf(msg, args...)
+	l.log(INFO, formattedMsg)
 }
 
 // Warn logs a warning message

@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"io/ioutil"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/nodebytehosting/syscapture/api"
@@ -17,9 +19,9 @@ import (
 	"github.com/nodebytehosting/syscapture/internal/config"
 	"github.com/nodebytehosting/syscapture/internal/handler"
 	"github.com/nodebytehosting/syscapture/internal/plugin"
-	"github.com/nodebytehosting/syscapture/plugins/sample"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -30,16 +32,14 @@ var (
 )
 
 func main() {
+	// Parse flags
+	flag.Parse()
+
+	// Load configuration
 	if err := setup(); err != nil {
 		logger.Error(fmt.Sprintf("Setup error: %v", err))
 		os.Exit(1)
 	}
-
-	// Create the plugin
-	samplePlugin := sample.NewPlugin()
-
-	// Let the plugin register itself
-	samplePlugin.Register(pluginManager)
 
 	// Load plugins
 	if err := pluginManager.LoadPlugins(); err != nil {
@@ -59,37 +59,55 @@ func main() {
 
 func setup() error {
 	if err := loadEnv(); err != nil {
+		logger.Error(fmt.Sprintf("Error loading environment variables: %v", err))
+	}
+
+	if err := loadConfig(); err != nil {
 		return err
 	}
 
 	if *flag.Bool("version", false, "Display the current version of SysCapture") {
-		logger.Info(fmt.Sprintf("SysCapture version: %s\n", Version))
+		logger.Info("SysCapture version: %s", Version)
 		os.Exit(0)
 	}
 
-	initConfig()
 	initLogger()
-
-	if err := pluginManager.LoadPlugins(); err != nil {
-		return fmt.Errorf("failed to load plugins: %v", err)
-	}
 
 	return nil
 }
 
 func loadEnv() error {
 	if err := godotenv.Load(); err != nil {
+		if os.IsNotExist(err) {
+			logger.Warn("No .env file found, proceeding without it.")
+			return nil // Do not return an error if the .env file is missing
+		}
 		return fmt.Errorf("error loading .env file: %v", err)
 	}
 	return nil
 }
 
-func initConfig() {
-	port := os.Getenv("PORT")
-	apiSecret := os.Getenv("API_SECRET")
-	ginMode := os.Getenv("GIN_MODE")
-	appConfig = config.NewConfig(port, apiSecret, ginMode, logger)
-	logger.Info("Configuration loaded successfully.")
+func loadConfig() error {
+	yamlFile, err := ioutil.ReadFile("config.yml")
+	if err != nil {
+		return fmt.Errorf("error reading config.yml file: %v", err)
+	}
+
+	var configData config.Config
+	if err := yaml.Unmarshal(yamlFile, &configData); err != nil {
+		return fmt.Errorf("error unmarshalling config.yml: %v", err)
+	}
+
+	// Set the loaded configuration values
+	appConfig = &configData
+	logger.Info("Configuration loaded successfully from config.yml: %+v", appConfig)
+
+	// In the loadConfig function
+	if appConfig.Notifications.DiscordWebhook == "" {
+		logger.Warn("No notification provider configured. Notifications will be disabled.")
+	}
+
+	return nil
 }
 
 func initLogger() {
@@ -137,7 +155,7 @@ func gracefulShutdown(server *http.Server, timeout time.Duration) {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	sig := <-quit
-	logger.Info(fmt.Sprintf("Signal received: %v", sig))
+	logger.Info("Signal received: %v", sig)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
