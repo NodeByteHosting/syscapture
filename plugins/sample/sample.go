@@ -1,16 +1,21 @@
-package main
+package sample
 
 import (
+	"flag"
+
 	"github.com/nodebytehosting/syscapture/internal/handler"
 	"github.com/nodebytehosting/syscapture/internal/plugin"
 )
 
 type SamplePlugin struct {
-	logger handler.Logger
+	logger  handler.Logger
+	enabled bool
 }
 
 func NewPlugin() plugin.Plugin {
-	return &SamplePlugin{}
+	return &SamplePlugin{
+		enabled: *flag.Bool("sample-plugin-enabled", true, "Enable/disable the sample plugin"),
+	}
 }
 
 func (p *SamplePlugin) Name() string {
@@ -25,11 +30,18 @@ func (p *SamplePlugin) Init(logger handler.Logger) error {
 
 func (p *SamplePlugin) Start() error {
 	p.logger.Info("SamplePlugin is now running")
-	p.logger.Info("SamplePlugin is performing its task...")
 	return nil
 }
 
 func (p *SamplePlugin) Stop() error {
 	p.logger.Info("SamplePlugin has been stopped")
 	return nil
+}
+
+func (p *SamplePlugin) IsEnabled() bool {
+	return p.enabled
+}
+
+func (p *SamplePlugin) Register(manager *plugin.PluginManager) {
+	manager.Register(p)
 }

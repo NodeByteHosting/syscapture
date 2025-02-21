@@ -17,6 +17,7 @@ import (
 	"github.com/nodebytehosting/syscapture/internal/config"
 	"github.com/nodebytehosting/syscapture/internal/handler"
 	"github.com/nodebytehosting/syscapture/internal/plugin"
+	"github.com/nodebytehosting/syscapture/plugins/sample"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -31,6 +32,24 @@ var (
 func main() {
 	if err := setup(); err != nil {
 		logger.Error(fmt.Sprintf("Setup error: %v", err))
+		os.Exit(1)
+	}
+
+	// Create the plugin
+	samplePlugin := sample.NewPlugin()
+
+	// Let the plugin register itself
+	samplePlugin.Register(pluginManager)
+
+	// Load plugins
+	if err := pluginManager.LoadPlugins(); err != nil {
+		fmt.Printf("Failed to load plugins: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Start plugins
+	if err := pluginManager.StartAll(); err != nil {
+		fmt.Printf("Failed to start plugins: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -53,10 +72,6 @@ func setup() error {
 
 	if err := pluginManager.LoadPlugins(); err != nil {
 		return fmt.Errorf("failed to load plugins: %v", err)
-	}
-
-	if err := pluginManager.StartAll(); err != nil {
-		return fmt.Errorf("failed to start plugins: %v", err)
 	}
 
 	return nil
