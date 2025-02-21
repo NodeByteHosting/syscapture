@@ -45,7 +45,7 @@ const defaultPort = "42000"
 func NewConfig(port string, apiSecret string, ginMode string, logger handler.Logger) *Config {
 	if port == "" {
 		port = defaultPort
-		logger.Warn("Missing PORT environment variable, using default value: " + defaultPort)
+		logger.Warn("Missing PORT environment variable, using default value: %s", defaultPort)
 	}
 
 	// Validate required fields
@@ -96,7 +96,7 @@ func LoadConfig(yamlFile string, envFile string, logger handler.Logger) (*Config
 	// Load YAML configuration
 	file, err := os.Open(yamlFile)
 	if err != nil {
-		logger.Info("Error opening YAML config file: %v", err)
+		logger.Error("Error opening YAML config file: %v", err)
 		return nil, err
 	}
 	defer file.Close()
@@ -104,7 +104,7 @@ func LoadConfig(yamlFile string, envFile string, logger handler.Logger) (*Config
 	var config Config
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&config); err != nil {
-		logger.Info("Error decoding YAML config: %v", err)
+		logger.Error("Error decoding YAML config: %v", err)
 		return nil, err
 	}
 
@@ -187,31 +187,6 @@ func LoadConfig(yamlFile string, envFile string, logger handler.Logger) (*Config
 	if envMonitorDisk := os.Getenv("MONITOR_DISK"); envMonitorDisk != "" {
 		config.Notifications.MonitorDisk = envMonitorDisk == "true"
 	}
-
-	logger.Info("Loaded configuration: %+v", config)
-	logger.Info("Port: %s", config.Port)
-	logger.Info("APISecret: %s", config.APISecret)
-	logger.Info("GinMode: %s", config.GinMode)
-	logger.Info("Notifications:")
-	logger.Info("  Provider: %s", config.Notifications.Provider)
-	logger.Info("  DiscordWebhook: %s", config.Notifications.DiscordWebhook)
-	logger.Info("  SlackWebhook: %s", config.Notifications.SlackWebhook)
-	logger.Info("  EmailProvider: %s", config.Notifications.EmailProvider)
-	logger.Info("  EmailFrom: %s", config.Notifications.EmailFrom)
-	logger.Info("  EmailTo: %s", config.Notifications.EmailTo)
-	logger.Info("  PostmarkToken: %s", config.Notifications.PostmarkToken)
-	logger.Info("  SendgridKey: %s", config.Notifications.SendgridKey)
-	logger.Info("  SMTPHost: %s", config.Notifications.SMTPHost)
-	logger.Info("  SMTPPort: %s", config.Notifications.SMTPPort)
-	logger.Info("  SMTPUsername: %s", config.Notifications.SMTPUsername)
-	logger.Info("  SMTPPassword: %s", config.Notifications.SMTPPassword)
-	logger.Info("  CPUThreshold: %f", config.Notifications.CPUThreshold)
-	logger.Info("  MemoryThreshold: %f", config.Notifications.MemoryThreshold)
-	logger.Info("  DiskThreshold: %f", config.Notifications.DiskThreshold)
-	logger.Info("  MonitorCPU: %t", config.Notifications.MonitorCPU)
-	logger.Info("  MonitorMemory: %t", config.Notifications.MonitorMemory)
-	logger.Info("  MonitorDisk: %t", config.Notifications.MonitorDisk)
-	logger.Info("  Enabled: %t", config.Notifications.Enabled)
 
 	logger.Info("Configuration overrides applied successfully")
 

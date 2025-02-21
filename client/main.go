@@ -105,10 +105,6 @@ func initRouter() *gin.Engine {
 
 	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, ginSwagger.DeepLinking(true)))
 
-	r.StaticFile("/", "static/index.html")
-	r.StaticFile("/static", "static/index.html")
-	r.Static("/static", "static")
-
 	return r
 }
 

@@ -21,10 +21,10 @@ const (
 
 // Logger is the interface for logging
 type Logger interface {
-	Debug(msg string)
+	Debug(msg string, args ...interface{})
 	Info(msg string, args ...interface{})
-	Warn(msg string)
-	Error(msg string)
+	Warn(msg string, args ...interface{})
+	Error(msg string, args ...interface{})
 	SetLevel(level LogLevel)
 	SetOutput(output *os.File)
 	SetFormatter(formatter Formatter)
@@ -136,7 +136,7 @@ func (l *SysCaptureLogger) log(level LogLevel, msg string) {
 }
 
 // Debug logs a debug message
-func (l *SysCaptureLogger) Debug(msg string) {
+func (l *SysCaptureLogger) Debug(msg string, args ...interface{}) {
 	l.log(DEBUG, msg)
 }
 
@@ -147,11 +147,11 @@ func (l *SysCaptureLogger) Info(msg string, args ...interface{}) {
 }
 
 // Warn logs a warning message
-func (l *SysCaptureLogger) Warn(msg string) {
+func (l *SysCaptureLogger) Warn(msg string, args ...interface{}) {
 	l.log(WARN, msg)
 }
 
 // Error logs an error message
-func (l *SysCaptureLogger) Error(msg string) {
+func (l *SysCaptureLogger) Error(msg string, args ...interface{}) {
 	l.log(ERROR, msg)
 }

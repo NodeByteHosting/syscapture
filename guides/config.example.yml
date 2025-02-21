@@ -1,7 +1,6 @@
-syscapture:
-  port: "42000"  # Port for the syscapture application
-  api_secret: "your_api_secret"  # API secret for authentication
-  gin_mode: "release"  # Gin framework mode (release or debug)
+port: "42000"  # Port for the syscapture application
+api_secret: "your_api_secret"  # API secret for authentication
+gin_mode: "release"  # Gin framework mode (release or debug)
 
 notify:
   enabled: true  # Enable the notify plugin
