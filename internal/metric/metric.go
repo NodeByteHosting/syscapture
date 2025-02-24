@@ -106,12 +106,46 @@ type HostData struct {
 
 func (h HostData) isMetric() {}
 
-// NetworkData represents the collected network metrics.
+// NetworkData represents network interface statistics
 type NetworkData struct {
+	// Total statistics
 	BytesSent   uint64 `json:"bytes_sent"`
 	BytesRecv   uint64 `json:"bytes_recv"`
 	PacketsSent uint64 `json:"packets_sent"`
 	PacketsRecv uint64 `json:"packets_recv"`
+
+	// Error statistics
+	ErrorsIn  uint64 `json:"errors_in"`
+	ErrorsOut uint64 `json:"errors_out"`
+	DropsIn   uint64 `json:"drops_in"`
+	DropsOut  uint64 `json:"drops_out"`
+
+	// Interface details
+	Interfaces []InterfaceData `json:"interfaces"`
+
+	// Connection statistics
+	Connections uint64 `json:"connections"`
+	TCPConns    uint64 `json:"tcp_connections"`
+	UDPConns    uint64 `json:"udp_connections"`
+
+	// Rates (calculated per second)
+	BytesSentRate   float64 `json:"bytes_sent_rate"`
+	BytesRecvRate   float64 `json:"bytes_recv_rate"`
+	PacketsSentRate float64 `json:"packets_sent_rate"`
+	PacketsRecvRate float64 `json:"packets_recv_rate"`
+}
+
+// InterfaceData represents individual network interface statistics
+type InterfaceData struct {
+	Name        string `json:"name"`
+	BytesSent   uint64 `json:"bytes_sent"`
+	BytesRecv   uint64 `json:"bytes_recv"`
+	PacketsSent uint64 `json:"packets_sent"`
+	PacketsRecv uint64 `json:"packets_recv"`
+	ErrorsIn    uint64 `json:"errors_in"`
+	ErrorsOut   uint64 `json:"errors_out"`
+	DropsIn     uint64 `json:"drops_in"`
+	DropsOut    uint64 `json:"drops_out"`
 }
 
 func (n NetworkData) isMetric() {}

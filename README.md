@@ -2,7 +2,10 @@
 
 [![Visit Nodebyte](https://cordx.lol/users/510065483693817867/S3XUM4iK.png)](https://nodebytehosting.github.io/syscapture/)
 
-## Table of Contents
+## Overview
+**SysCapture** is a powerful system monitoring agent that provides real-time hardware metrics, system alerts, and monitoring capabilities through a RESTful API. It's designed for easy integration with existing monitoring stacks and supports multiple notification channels.
+
+### Table of Contents
 - [Overview](#overview)
 - [Features](#features)
 - [Quick Start](#quick-start)
@@ -10,9 +13,6 @@
 - [Contributing](#contributing)
 - [License](#license)
 - [Support](#support)
-
-## Overview
-**SysCapture** is a powerful system monitoring agent that provides real-time hardware metrics, system alerts, and monitoring capabilities through a RESTful API. It's designed for easy integration with existing monitoring stacks and supports multiple notification channels.
 
 ## Features
 
