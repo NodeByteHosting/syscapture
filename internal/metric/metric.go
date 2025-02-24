@@ -2,6 +2,32 @@ package metric
 
 import "time"
 
+// Protocol constants
+const (
+	ProtocolTCP  uint32 = 1
+	ProtocolUDP  uint32 = 2
+	ProtocolICMP uint32 = 3
+)
+
+// NetworkProtocolType represents the type of network protocol
+type NetworkProtocolType uint32
+
+// Connection states
+const (
+	StateEstablished NetworkProtocolType = iota
+	StateSynSent
+	StateSynRecv
+	StateFinWait1
+	StateFinWait2
+	StateTimeWait
+	StateClose
+	StateCloseWait
+	StateLastAck
+	StateListen
+	StateClosing
+	StateNone
+)
+
 // MetricsSlice represents a slice of Metric interfaces.
 type MetricsSlice []Metric
 
@@ -128,6 +154,10 @@ type NetworkData struct {
 	TCPConns    uint64 `json:"tcp_connections"`
 	UDPConns    uint64 `json:"udp_connections"`
 
+	// Protocol-specific connection counts
+	ConnectionsByProtocol map[NetworkProtocolType]uint64 `json:"connections_by_protocol"`
+	ConnectionsByState    map[NetworkProtocolType]uint64 `json:"connections_by_state"`
+
 	// Rates (calculated per second)
 	BytesSentRate   float64 `json:"bytes_sent_rate"`
 	BytesRecvRate   float64 `json:"bytes_recv_rate"`
@@ -146,6 +176,19 @@ type InterfaceData struct {
 	ErrorsOut   uint64 `json:"errors_out"`
 	DropsIn     uint64 `json:"drops_in"`
 	DropsOut    uint64 `json:"drops_out"`
+
+	// Protocol-specific statistics
+	ProtocolStats map[NetworkProtocolType]ProtocolStats `json:"protocol_stats,omitempty"`
+}
+
+// ProtocolStats represents protocol-specific statistics
+type ProtocolStats struct {
+	PacketsSent uint64 `json:"packets_sent"`
+	PacketsRecv uint64 `json:"packets_recv"`
+	BytesSent   uint64 `json:"bytes_sent"`
+	BytesRecv   uint64 `json:"bytes_recv"`
+	Errors      uint64 `json:"errors"`
+	Drops       uint64 `json:"drops"`
 }
 
 func (n NetworkData) isMetric() {}

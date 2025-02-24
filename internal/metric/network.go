@@ -6,12 +6,6 @@ import (
 	"github.com/shirou/gopsutil/v4/net"
 )
 
-const (
-	ProtocolTCP  uint32 = 1
-	ProtocolUDP  uint32 = 2
-	ProtocolICMP uint32 = 3
-)
-
 // CollectNetworkMetrics collects comprehensive network metrics
 func CollectNetworkMetrics() (*NetworkData, []CustomErr) {
 	var networkErrors []CustomErr
