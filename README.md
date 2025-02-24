@@ -65,9 +65,9 @@ curl http://localhost:42000/api/metrics/disk
 
 ### Setup Guides
 - [Available Commands](guides/MAKEFILE.md)
-- [Configuration Guide](guides/CONFIG.md)
-- [Systemd Service](guides/SYSTEMD.md)
-- [NGINX Configuration](guides/NGINX.md)
+- [Configuration Guide](guides/setup/CONFIG.md)
+- [Systemd Service](guides/setup/SYSTEMD.md)
+- [NGINX Configuration](guides/setup/NGINX.md)
 
 ### Feature Documentation
 - [Plugin System](guides/features/PLUGINS.md)
