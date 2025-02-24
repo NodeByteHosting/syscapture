@@ -1,5 +1,7 @@
 package metric
 
+import "time"
+
 // MetricsSlice represents a slice of Metric interfaces.
 type MetricsSlice []Metric
 
@@ -56,21 +58,39 @@ type MemoryData struct {
 
 func (m MemoryData) isMetric() {}
 
-// DiskData represents the collected disk metrics.
+// DiskData represents disk metrics for a single partition
 type DiskData struct {
-	Device       string   `json:"device"`        // Device
-	TotalBytes   *uint64  `json:"total_bytes"`   // Total space of device in bytes
-	FreeBytes    *uint64  `json:"free_bytes"`    // Free space of device in bytes
-	UsagePercent *float64 `json:"usage_percent"` // Usage Percent of device
+	Device       string   `json:"device"`
+	Mountpoint   string   `json:"mountpoint"`
+	TotalBytes   *uint64  `json:"total_bytes"`
+	FreeBytes    *uint64  `json:"free_bytes"`
+	UsagePercent *float64 `json:"usage_percent"`
+	IOStats      *IOStats `json:"io_stats,omitempty"`
+}
+
+// IOStats represents disk I/O statistics
+type IOStats struct {
+	ReadCount      uint64        `json:"read_count"`
+	WriteCount     uint64        `json:"write_count"`
+	ReadBytes      uint64        `json:"read_bytes"`
+	WriteBytes     uint64        `json:"write_bytes"`
+	ReadTime       time.Duration `json:"read_time"`
+	WriteTime      time.Duration `json:"write_time"`
+	IopsInProgress uint64        `json:"iops_in_progress"`
 }
 
 func (d DiskData) isMetric() {}
 
 // HostData represents the collected host information.
 type HostData struct {
-	Os            string `json:"os"`             // Operating System
-	Platform      string `json:"platform"`       // Platform Name
-	KernelVersion string `json:"kernel_version"` // Kernel Version
+	Os            string    `json:"os"`
+	Platform      string    `json:"platform"`
+	KernelVersion string    `json:"kernel_version"`
+	Hostname      string    `json:"hostname"`
+	Uptime        uint64    `json:"uptime"`
+	BootTime      time.Time `json:"boot_time"`
+	ProcCount     uint64    `json:"process_count"`
+	Users         []string  `json:"users"`
 }
 
 func (h HostData) isMetric() {}
