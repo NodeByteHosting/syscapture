@@ -1,14 +1,18 @@
 package metric
 
 import (
-	"time"
-
 	"github.com/shirou/gopsutil/v4/net"
 )
 
-// CollectNetworkMetrics collects comprehensive network metrics
 func CollectNetworkMetrics() (*NetworkData, []CustomErr) {
 	var networkErrors []CustomErr
+
+	// Initialize NetworkData with maps
+	netData := NetworkData{
+		ConnectionsByProtocol: make(map[NetworkProtocolType]uint64),
+		ConnectionsByState:    make(map[NetworkProtocolType]uint64),
+	}
+	netData.Interfaces = make([]InterfaceData, 0)
 
 	// Get interface statistics
 	stats, err := net.IOCounters(true)
@@ -29,10 +33,6 @@ func CollectNetworkMetrics() (*NetworkData, []CustomErr) {
 		})
 	}
 
-	// Calculate totals and prepare interface data
-	var netData NetworkData
-	netData.Interfaces = make([]InterfaceData, 0, len(stats))
-
 	for _, stat := range stats {
 		// Add to totals
 		netData.BytesSent += stat.BytesSent
@@ -44,43 +44,70 @@ func CollectNetworkMetrics() (*NetworkData, []CustomErr) {
 		netData.DropsIn += stat.Dropin
 		netData.DropsOut += stat.Dropout
 
-		// Add interface details
-		netData.Interfaces = append(netData.Interfaces, InterfaceData{
-			Name:        stat.Name,
-			BytesSent:   stat.BytesSent,
-			BytesRecv:   stat.BytesRecv,
-			PacketsSent: stat.PacketsSent,
-			PacketsRecv: stat.PacketsRecv,
-			ErrorsIn:    stat.Errin,
-			ErrorsOut:   stat.Errout,
-			DropsIn:     stat.Dropin,
-			DropsOut:    stat.Dropout,
-		})
+		// Create interface data with protocol stats
+		iface := InterfaceData{
+			Name:          stat.Name,
+			BytesSent:     stat.BytesSent,
+			BytesRecv:     stat.BytesRecv,
+			PacketsSent:   stat.PacketsSent,
+			PacketsRecv:   stat.PacketsRecv,
+			ErrorsIn:      stat.Errin,
+			ErrorsOut:     stat.Errout,
+			DropsIn:       stat.Dropin,
+			DropsOut:      stat.Dropout,
+			ProtocolStats: make(map[NetworkProtocolType]ProtocolStats),
+		}
+
+		netData.Interfaces = append(netData.Interfaces, iface)
 	}
 
-	// Calculate connection statistics
+	// Calculate connection statistics with protocol types
 	if conns != nil {
-		var tcpCount, udpCount uint64
 		for _, conn := range conns {
-			switch conn.Type {
-			case ProtocolTCP:
-				tcpCount++
-			case ProtocolUDP:
-				udpCount++
+			// Convert connection type to NetworkProtocolType
+			protocol := NetworkProtocolType(conn.Type)
+			netData.ConnectionsByProtocol[protocol]++
+
+			// Map connection status to our state constants
+			var state NetworkProtocolType
+			switch conn.Status {
+			case "ESTABLISHED":
+				state = StateEstablished
+			case "SYN_SENT":
+				state = StateSynSent
+			case "SYN_RECV":
+				state = StateSynRecv
+			case "FIN_WAIT1":
+				state = StateFinWait1
+			case "FIN_WAIT2":
+				state = StateFinWait2
+			case "TIME_WAIT":
+				state = StateTimeWait
+			case "CLOSE":
+				state = StateClose
+			case "CLOSE_WAIT":
+				state = StateCloseWait
+			case "LAST_ACK":
+				state = StateLastAck
+			case "LISTEN":
+				state = StateListen
+			case "CLOSING":
+				state = StateClosing
+			default:
+				state = StateNone
+			}
+			netData.ConnectionsByState[state]++
+
+			// Update traditional counters for backward compatibility
+			switch protocol {
+			case NetworkProtocolType(ProtocolTCP):
+				netData.TCPConns++
+			case NetworkProtocolType(ProtocolUDP):
+				netData.UDPConns++
 			}
 		}
 		netData.Connections = uint64(len(conns))
-		netData.TCPConns = tcpCount
-		netData.UDPConns = udpCount
 	}
 
 	return &netData, networkErrors
-}
-
-// TODO: Implement better rate calculation logic
-func calculateRate(current, previous uint64, timeDelta time.Duration) float64 {
-	if timeDelta.Seconds() == 0 {
-		return 0
-	}
-	return float64(current-previous) / timeDelta.Seconds()
 }
