@@ -30,6 +30,7 @@ type SecurityConfig struct {
 	Auth AuthConfig `yaml:"auth"`
 }
 
+// Update the AuthConfig struct to match YAML structure
 type AuthConfig struct {
 	Enabled        bool            `yaml:"enabled" env:"AUTH_ENABLED"`
 	Secret         string          `yaml:"secret" env:"AUTH_SECRET"`
@@ -94,14 +95,42 @@ type SlackConfig struct {
 }
 
 type MonitorConfig struct {
-	CPU    MonitorThreshold `yaml:"cpu"`
-	Memory MonitorThreshold `yaml:"memory"`
-	Disk   MonitorThreshold `yaml:"disk"`
+	CPU     MonitorThreshold `yaml:"cpu"`
+	Memory  MonitorThreshold `yaml:"memory"`
+	Disk    MonitorThreshold `yaml:"disk"`
+	Network NetworkMonitor   `yaml:"network"`
+	DDOS    DDOSMonitor      `yaml:"ddos"`
 }
 
 type MonitorThreshold struct {
-	Enabled   bool    `yaml:"enabled"`
-	Threshold float64 `yaml:"threshold"`
+	Enabled   bool          `yaml:"enabled"`
+	Threshold float64       `yaml:"threshold"`
+	Interval  time.Duration `yaml:"interval"`
+	Cooldown  time.Duration `yaml:"cooldown"`
+}
+
+type NetworkMonitor struct {
+	Enabled   bool             `yaml:"enabled"`
+	Threshold NetworkThreshold `yaml:"threshold"`
+	Interval  time.Duration    `yaml:"interval"`
+	Cooldown  time.Duration    `yaml:"cooldown"`
+}
+
+type NetworkThreshold struct {
+	Bandwidth   float64 `yaml:"bandwidth"`
+	Connections int     `yaml:"connections"`
+}
+
+type DDOSMonitor struct {
+	Enabled   bool          `yaml:"enabled"`
+	Threshold DDOSThreshold `yaml:"threshold"`
+	Interval  time.Duration `yaml:"interval"`
+	Cooldown  time.Duration `yaml:"cooldown"`
+}
+
+type DDOSThreshold struct {
+	RequestsPerSecond     int `yaml:"requests_per_second"`
+	ConcurrentConnections int `yaml:"concurrent_connections"`
 }
 
 const defaultConfig = `
@@ -159,12 +188,32 @@ notifications:
     cpu:
       enabled: true
       threshold: 80
+      interval: 30s
+      cooldown: 5m
     memory:
       enabled: true
       threshold: 80
+      interval: 30s
+      cooldown: 5m
     disk:
       enabled: true
       threshold: 80
+      interval: 1m
+      cooldown: 15m
+    network:
+      enabled: true
+      threshold:
+        bandwidth: 90
+        connections: 1000
+      interval: 30s
+      cooldown: 5m
+    ddos:
+      enabled: true
+      threshold:
+        requests_per_second: 1000
+        concurrent_connections: 500
+      interval: 10s
+      cooldown: 1m
 `
 
 // Add these new functions after the existing imports

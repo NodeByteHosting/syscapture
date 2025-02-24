@@ -16,6 +16,7 @@ import (
 	_ "github.com/nodebytehosting/syscapture/docs"
 	"github.com/nodebytehosting/syscapture/internal/config"
 	"github.com/nodebytehosting/syscapture/internal/handler"
+	monitor "github.com/nodebytehosting/syscapture/internal/monitors"
 	"github.com/nodebytehosting/syscapture/internal/notify"
 	"github.com/nodebytehosting/syscapture/internal/plugin"
 	swaggerFiles "github.com/swaggo/files"
@@ -54,6 +55,28 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize monitor manager
+	monitorManager := monitor.NewMonitorManager(&appConfig.Notifications.Monitors, notifier, logger)
+	if err := monitorManager.Initialize(); err != nil {
+		logger.Error("Failed to initialize monitors: %v", err)
+		os.Exit(1)
+	}
+
+	// Start monitors if notifications are enabled
+	if appConfig.Notifications.Enabled {
+		if err := monitorManager.StartAll(); err != nil {
+			logger.Error("Failed to start monitors: %v", err)
+			os.Exit(1)
+		}
+	}
+
+	// Add monitor manager to graceful shutdown
+	defer func() {
+		if err := monitorManager.StopAll(); err != nil {
+			logger.Error("Failed to stop monitors: %v", err)
+		}
+	}()
+
 	// Initialize notifications
 	initializeNotifications()
 
@@ -75,20 +98,6 @@ func setup(configFile, envFile string) error {
 	// Initialize logger with config settings
 	if err := initLogger(appConfig.Logging); err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
-	}
-
-	// Log startup information
-	logger.Info("SysCapture v%s starting up...", Version)
-	logger.Info("Configuration loaded successfully")
-	logger.Info("Server Configuration:")
-	logger.Info("  - Port: %s", appConfig.Server.Port)
-	logger.Info("  - Environment: %s", appConfig.Server.Environment)
-	logger.Info("  - Base URL: %s", appConfig.Server.BaseURL)
-
-	if appConfig.Security.Auth.Enabled {
-		logger.Info("Authentication enabled")
-		logger.Info("  - Rate limiting: %v", appConfig.Security.Auth.RateLimit.Enabled)
-		logger.Info("  - Token expiry: %v", appConfig.Security.Auth.TokenExpiry)
 	}
 
 	return nil
@@ -154,9 +163,6 @@ func initializeNotifications() {
 
 	if appConfig.Notifications.Enabled {
 		logger.Info("Notifications enabled")
-		if err := notifier.SendNotification("SysCapture started successfully", "system"); err != nil {
-			logger.Error("Failed to send startup notification: %v", err)
-		}
 	}
 }
 
@@ -180,9 +186,6 @@ func startServer() *http.Server {
 		logger.Info("Starting HTTP server on %s", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("Server listen error: %v", err)
-			if appConfig.Notifications.Enabled {
-				notifier.SendNotification(fmt.Sprintf("Server error: %v", err), "system")
-			}
 			// Force shutdown on critical error
 			os.Exit(1)
 		}

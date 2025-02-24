@@ -57,6 +57,8 @@ func (n *Notifier) SendNotification(message string, provider string, opts ...Not
 
 	var notifier Provider
 	switch provider {
+	case "system":
+		notifier = n.discordNotifier
 	case "discord":
 		notifier = n.discordNotifier
 	case "email":

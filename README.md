@@ -5,127 +5,91 @@
 ## Table of Contents
 - [Overview](#overview)
 - [Features](#features)
-- [Installation and Setup](#installation-and-setup)
-  - [General Installation](#general-installation)
-  - [Systemd Setup Guide](#systemd-setup-guide)
-  - [NGINX Setup Guide](#nginx-setup-guide)
-- [Configuration Setup](#configuration-setup)
-- [Usage](#usage)
-- [API Documentation](#api-documentation)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
-- [Contact Information](#contact-information)
+- [Support](#support)
 
 ## Overview
-**SysCapture** is an open-source hardware monitoring agent that collects vital system information and exposes it via a RESTful API for easy integration with monitoring services like Prometheus.
-
-> **Note:** SysCapture is currently available only on **Linux**.
+**SysCapture** is a powerful system monitoring agent that provides real-time hardware metrics, system alerts, and monitoring capabilities through a RESTful API. It's designed for easy integration with existing monitoring stacks and supports multiple notification channels.
 
 ## Features
-- **Hardware Monitoring:** Captures CPU, memory, disk, and host details.
-- **RESTful API:** Retrieve metrics quickly via HTTP endpoints.
-- **Lightweight:** Minimal system overhead.
-- **Extensible:** Fully open source, allowing for customization.
 
-## Installation and Setup
-For detailed installation and setup instructions, please refer to the following documents:
+### Core Features
+- **Hardware Monitoring:** Real-time CPU, memory, disk, and network metrics
+- **RESTful API:** Comprehensive HTTP endpoints with authentication
+- **Alert System:** Configurable thresholds and notifications
+- **Multi-Channel Notifications:** Support for Discord, Slack, and Email
 
-### General Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/nodebytehosting/syscapture.git
-   cd syscapture
-   ```
-2. Install dependencies:
-   ```bash
-   make install
-   ```
-3. Build the application:
-   ```bash
-   make build
-   ```
-4. Run the application (development mode):
-   ```bash
-   make dev
-   ```
+### Monitoring Capabilities
+- CPU usage and temperature
+- Memory utilization and swap
+- Disk usage and I/O metrics
+- Network bandwidth and connections
+- DDOS detection and prevention
 
-5. Run the application (production mode):
-   ```bash
-   make start
-   ```
+### Notification Channels
+- Discord webhooks with rich embeds
+- Email support (SMTP, SendGrid, Postmark, Resend)
+- Slack webhooks
+- Custom notification templates
 
-### Systemd Setup Guide
-To run SysCapture as a systemd service, create a service file:
+## Quick Start
+
+### Installation
 ```bash
-sudo nano /etc/systemd/system/syscapture.service
-```
-Add the following content:
-```ini
-[Unit]
-Description=SysCapture Service
-After=network.target
+# Clone the repository
+git clone https://github.com/nodebytehosting/syscapture.git
+cd syscapture
 
-[Service]
-Type=simple
-User=your_username
-ExecStart=/path/to/syscapture
-Restart=on-failure
+# Install dependencies
+make install
 
-[Install]
-WantedBy=multi-user.target
+# Start the service
+make start
 ```
-Enable and start the service:
+
+### Basic Usage
 ```bash
-sudo systemctl enable syscapture
-sudo systemctl start syscapture
+# Get all metrics
+curl http://localhost:42000/api/metrics
+
+# Get specific metrics
+curl http://localhost:42000/api/metrics/cpu
+curl http://localhost:42000/api/metrics/memory
+curl http://localhost:42000/api/metrics/disk
 ```
 
-### NGINX Setup Guide
-To set up NGINX as a reverse proxy for SysCapture, create a configuration file:
-```bash
-sudo nano /etc/nginx/sites-available/syscapture
-```
-Add the following content:
-```nginx
-server {
-    listen 80;
-    server_name your_domain_or_IP;
+## Documentation
 
-    location / {
-        proxy_pass http://localhost:42000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-Enable the configuration and restart NGINX:
-```bash
-sudo ln -s /etc/nginx/sites-available/syscapture /etc/nginx/sites-enabled/
-sudo systemctl restart nginx
-```
+### Setup Guides
+- [Available Commands](guides/MAKEFILE.md)
+- [Configuration Guide](guides/CONFIG.md)
+- [Systemd Service](guides/SYSTEMD.md)
+- [NGINX Configuration](guides/NGINX.md)
 
-## Configuration Setup
+### Feature Documentation
+- [Plugin System](guides/features/PLUGINS.md)
+- [Monitoring System](guides/features/MONITORS.md)
+- [Notification System](guides/features/NOTIFICATIONS.md)
+- [Authentication](guides/features/AUTHENTICATION.md)
+- [API Reference](guides/api/README.md)
 
-To set up the configuration for this project, please refer to the example files available in the `temp` directory. You can find:
-- `.env.example`: This file contains environment variables needed for the application.
-- `config.example.yml`: This file contains configuration settings for the application.
+### Examples
+- [Basic Monitoring](guides/examples/BASIC-MONITORING.md)
+- [Alert Configuration](guides/examples/ALERT-CONFIGURATION.md)
+- [Custom Notifications](guides/examples/CUSTOM-NOTIFICATIONS.md)
+- [Custom Plugins](guides/examples/PLUGIN-SYSTEM.md)
 
-You can move **one** of these files to your project's root directory and edit it to customize the configuration.
-
-## Usage
-After installation, you can access SysCapture by navigating to `http://localhost:42000/` in your web browser. The application will provide real-time monitoring data.
-
-## API Documentation
-SysCapture provides a RESTful API for accessing system metrics. The following endpoints are available:
-- `GET /api/metrics`: Retrieve all system metrics.
-- `GET /api/metrics/cpu`: Retrieve CPU usage metrics.
-- `GET /api/metrics/memory`: Retrieve memory usage metrics.
-- `GET /api/metrics/disk`: Retrieve disk usage metrics.
+For detailed configuration options, see the [Configuration Guide](guides/setup/CONFIG.md).
 
 ## Contributing
-We welcome contributions! Please refer to the [Contributing Guide](CONTRIBUTING.md) for more information on how to get involved. Follow our coding conventions and include tests where applicable.
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Support
+- [GitHub Issues](https://github.com/nodebytehosting/syscapture/issues)
+- [Discord Community](https://discord.gg/f99Rr9UybB)
