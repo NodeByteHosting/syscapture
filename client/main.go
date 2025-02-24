@@ -31,7 +31,9 @@ var (
 )
 
 func main() {
-	// Parse flags
+	// Parse command line flags
+	envFile := flag.String("env", ".env", "Path to environment file")
+	configFile := flag.String("config", "config.yml", "Path to configuration file")
 	versionFlag := flag.Bool("version", false, "Display the current version of SysCapture")
 	flag.Parse()
 
@@ -41,7 +43,7 @@ func main() {
 	}
 
 	// Initialize components
-	if err := setup(); err != nil {
+	if err := setup(*configFile, *envFile); err != nil {
 		logger.Error("Setup error: %v", err)
 		os.Exit(1)
 	}
@@ -62,35 +64,67 @@ func main() {
 	gracefulShutdown(server, 5*time.Second)
 }
 
-func setup() error {
+func setup(configFile, envFile string) error {
 	// Load configuration
 	var err error
-	appConfig, err = config.LoadConfig("config.yml", ".env", logger)
+	appConfig, err = config.LoadConfig(configFile, envFile, logger)
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// Initialize logger
-	initLogger()
+	// Initialize logger with config settings
+	if err := initLogger(appConfig.Logging); err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
 
 	// Log startup information
 	logger.Info("SysCapture v%s starting up...", Version)
 	logger.Info("Configuration loaded successfully")
-	logger.Info("  Port: %s", appConfig.Server.Port)
-	logger.Info("  Environment: %s", appConfig.Server.Environment)
+	logger.Info("Server Configuration:")
+	logger.Info("  - Port: %s", appConfig.Server.Port)
+	logger.Info("  - Environment: %s", appConfig.Server.Environment)
+	logger.Info("  - Base URL: %s", appConfig.Server.BaseURL)
+
+	if appConfig.Security.Auth.Enabled {
+		logger.Info("Authentication enabled")
+		logger.Info("  - Rate limiting: %v", appConfig.Security.Auth.RateLimit.Enabled)
+		logger.Info("  - Token expiry: %v", appConfig.Security.Auth.TokenExpiry)
+	}
 
 	return nil
 }
 
-func initLogger() {
-	logger.SetOutput(os.Stdout)
-	logger.SetLevel(handler.INFO)
+func initLogger(cfg config.LogConfig) error {
+	// Set log output
+	switch cfg.Output {
+	case "stdout":
+		logger.SetOutput(os.Stdout)
+	case "stderr":
+		logger.SetOutput(os.Stderr)
+	default:
+		// Try to open file for logging
+		file, err := os.OpenFile(cfg.Output, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			return fmt.Errorf("failed to open log file: %w", err)
+		}
+		logger.SetOutput(file)
+	}
+
+	// Set log level
+	level, err := handler.ParseLevel(cfg.Level)
+	if err != nil {
+		return fmt.Errorf("invalid log level: %w", err)
+	}
+	logger.SetLevel(level)
+
+	// Set formatter
 	logger.SetFormatter(&handler.TextFormatter{
 		FullTimestamp:   true,
-		TimestampFormat: time.RFC3339,
+		TimestampFormat: cfg.TimeFormat,
 	})
-}
 
+	return nil
+}
 func initializePlugins() error {
 	pluginsDir := filepath.Join(".", "plugins")
 	pluginManager = plugin.NewPluginManager(logger, pluginsDir)
@@ -130,6 +164,7 @@ func startServer() *http.Server {
 	gin.SetMode(getGinMode())
 	r := initRouter()
 
+	// Create server with timeouts
 	server := &http.Server{
 		Addr:              ":" + appConfig.Server.Port,
 		Handler:           r,
@@ -137,15 +172,19 @@ func startServer() *http.Server {
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20, // 1MB
 	}
 
+	// Start server in goroutine
 	go func() {
-		logger.Info("Starting HTTP server on port %s", appConfig.Server.Port)
+		logger.Info("Starting HTTP server on %s", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("Server listen error: %v", err)
 			if appConfig.Notifications.Enabled {
 				notifier.SendNotification(fmt.Sprintf("Server error: %v", err), "system")
 			}
+			// Force shutdown on critical error
+			os.Exit(1)
 		}
 	}()
 

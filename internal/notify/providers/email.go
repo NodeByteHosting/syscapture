@@ -77,24 +77,6 @@ func NewSendGridProvider(cfg *config.NotificationsConfig) *SendGridProvider {
 	}
 }
 
-func NewPostmarkProvider(cfg *config.NotificationsConfig) *SendGridProvider {
-	return &SendGridProvider{
-		config: cfg,
-		client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-	}
-}
-
-func NewResendProvider(cfg *config.NotificationsConfig) *SendGridProvider {
-	return &SendGridProvider{
-		config: cfg,
-		client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-	}
-}
-
 func (s *SendGridProvider) Send(subject, message string, fields map[string]string) error {
 	content := message
 	if len(fields) > 0 {
@@ -148,6 +130,136 @@ func (s *SendGridProvider) Send(subject, message string, fields map[string]strin
 			return fmt.Errorf("sendgrid API error: status %d", resp.StatusCode)
 		}
 		return fmt.Errorf("sendgrid API error: %v", errorResponse)
+	}
+
+	return nil
+}
+
+// Postmark Provider Implementation
+type PostmarkProvider struct {
+	config *config.NotificationsConfig
+	client *http.Client
+}
+
+func NewPostmarkProvider(cfg *config.NotificationsConfig) *PostmarkProvider {
+	return &PostmarkProvider{
+		config: cfg,
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
+}
+
+func (p *PostmarkProvider) Send(subject, message string, fields map[string]string) error {
+	content := message
+	if len(fields) > 0 {
+		var details strings.Builder
+		details.WriteString("\n\nDetails:\n")
+		for k, v := range fields {
+			details.WriteString(fmt.Sprintf("%s: %s\n", k, v))
+		}
+		content += details.String()
+	}
+
+	payload := map[string]interface{}{
+		"From":     p.config.Email.From,
+		"To":       p.config.Email.To,
+		"Subject":  subject,
+		"TextBody": content,
+		"Tag":      "syscapture",
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Postmark payload: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "https://api.postmarkapp.com/email", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("X-Postmark-Server-Token", p.config.Email.PostmarkToken)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "SysCapture/0.2.0")
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send email via Postmark: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		var errorResponse map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&errorResponse); err != nil {
+			return fmt.Errorf("postmark API error: status %d", resp.StatusCode)
+		}
+		return fmt.Errorf("postmark API error: %v", errorResponse)
+	}
+
+	return nil
+}
+
+// Resend Provider Implementation
+type ResendProvider struct {
+	config *config.NotificationsConfig
+	client *http.Client
+}
+
+func NewResendProvider(cfg *config.NotificationsConfig) *ResendProvider {
+	return &ResendProvider{
+		config: cfg,
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
+}
+
+func (r *ResendProvider) Send(subject, message string, fields map[string]string) error {
+	content := message
+	if len(fields) > 0 {
+		var details strings.Builder
+		details.WriteString("\n\nDetails:\n")
+		for k, v := range fields {
+			details.WriteString(fmt.Sprintf("%s: %s\n", k, v))
+		}
+		content += details.String()
+	}
+
+	payload := map[string]interface{}{
+		"from":    r.config.Email.From,
+		"to":      []string{r.config.Email.To},
+		"subject": subject,
+		"text":    content,
+	}
+
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Resend payload: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, "https://api.resend.com/v1/email", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.config.Email.ResendAPIKey))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "SysCapture/0.2.0")
+
+	resp, err := r.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send email via Resend: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		var errorResponse map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&errorResponse); err != nil {
+			return fmt.Errorf("resend API error: status %d", resp.StatusCode)
+		}
+		return fmt.Errorf("resend API error: %v", errorResponse)
 	}
 
 	return nil

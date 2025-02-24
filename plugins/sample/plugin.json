@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "A sample plugin demonstrating the plugin system",
     "author": "SysCapture Team",
-    "enabled": true,
+    "enabled": false,
     "dependencies": [],
     "settings": {
         "interval": "30s",

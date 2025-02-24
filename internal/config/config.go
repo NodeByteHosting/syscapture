@@ -167,12 +167,66 @@ notifications:
       threshold: 80
 `
 
-// LoadConfig loads the configuration from files and environment
+// Add these new functions after the existing imports
+func CreateDefaultConfig(path string) error {
+	// Check if file already exists
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("configuration file already exists at %s", path)
+	}
+
+	// Write default config to file
+	err := os.WriteFile(path, []byte(defaultConfig), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to create default config file: %w", err)
+	}
+
+	return nil
+}
+
+// Update the LoadConfig function
 func LoadConfig(yamlFile string, envFile string, logger handler.Logger) (*Config, error) {
-	// Load default configuration
 	config := &Config{}
+
+	// Load default configuration
 	if err := yaml.Unmarshal([]byte(defaultConfig), config); err != nil {
 		return nil, fmt.Errorf("failed to load default config: %w", err)
+	}
+
+	// Check if config file exists
+	if yamlFile != "" {
+		if _, err := os.Stat(yamlFile); os.IsNotExist(err) {
+			// Prompt user about missing config
+			logger.Warn("No configuration file found at %s", yamlFile)
+			logger.Info("Would you like to create a default configuration file? (y/n)")
+
+			// Read user input
+			var response string
+			fmt.Scanln(&response)
+
+			if response == "y" || response == "Y" {
+				if err := CreateDefaultConfig(yamlFile); err != nil {
+					logger.Error("Failed to create config file: %v", err)
+					return nil, fmt.Errorf("config creation failed: %w", err)
+				}
+				logger.Info("Default configuration file created at %s", yamlFile)
+				logger.Info("Please edit the configuration file and restart the application")
+				os.Exit(0)
+			} else {
+				logger.Error("Configuration file is required to run the application")
+				return nil, fmt.Errorf("missing configuration file")
+			}
+		}
+
+		// Load YAML configuration
+		data, err := os.ReadFile(yamlFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read config file: %w", err)
+		}
+
+		if err := yaml.Unmarshal(data, config); err != nil {
+			return nil, fmt.Errorf("failed to parse config file: %w", err)
+		}
+		logger.Info("Loaded configuration from %s", yamlFile)
 	}
 
 	// Load .env file if specified
@@ -184,26 +238,54 @@ func LoadConfig(yamlFile string, envFile string, logger handler.Logger) (*Config
 		}
 	}
 
-	// Load YAML configuration if exists
-	if yamlFile != "" {
-		data, err := os.ReadFile(yamlFile)
-		if err != nil {
-			logger.Warn("No config file found at %s", yamlFile)
-		} else {
-			if err := yaml.Unmarshal(data, config); err != nil {
-				return nil, fmt.Errorf("failed to parse config file: %w", err)
-			}
-			logger.Info("Loaded configuration from %s", yamlFile)
-		}
-	}
-
 	// Apply environment variable overrides
 	if err := loadEnvOverrides(config); err != nil {
 		return nil, fmt.Errorf("failed to apply environment overrides: %w", err)
 	}
 
+	// Validate required configuration
+	if err := validateConfig(config); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
 	logger.Info("Configuration loaded successfully")
 	return config, nil
+}
+
+// Add a new validation function
+func validateConfig(config *Config) error {
+	if config.Server.Port == "" {
+		return fmt.Errorf("server port is required")
+	}
+
+	if config.Security.Auth.Enabled && config.Security.Auth.Secret == "" {
+		return fmt.Errorf("auth secret is required when authentication is enabled")
+	}
+
+	if config.Notifications.Enabled {
+		if config.Notifications.Discord.Webhook == "" &&
+			config.Notifications.Slack.Webhook == "" &&
+			config.Notifications.Email.Provider == "" {
+			return fmt.Errorf("at least one notification provider must be configured when notifications are enabled")
+		}
+
+		// Validate email configuration if enabled
+		if config.Notifications.Email.Provider != "" {
+			if config.Notifications.Email.From == "" || config.Notifications.Email.To == "" {
+				return fmt.Errorf("email from and to addresses are required when email notifications are enabled")
+			}
+
+			// Validate SMTP configuration
+			if config.Notifications.Email.Provider == "smtp" {
+				if config.Notifications.Email.SMTP.Host == "" ||
+					config.Notifications.Email.SMTP.Port == "" {
+					return fmt.Errorf("SMTP host and port are required when using SMTP provider")
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // loadEnvOverrides applies environment variable overrides to the config
