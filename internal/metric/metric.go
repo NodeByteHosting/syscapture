@@ -48,12 +48,23 @@ type CPUData struct {
 
 func (c CPUData) isMetric() {}
 
-// MemoryData represents the collected memory metrics.
+// MemoryData represents system memory statistics
 type MemoryData struct {
-	TotalBytes     uint64   `json:"total_bytes"`     // Total space in bytes
-	AvailableBytes uint64   `json:"available_bytes"` // Available space in bytes
-	UsedBytes      uint64   `json:"used_bytes"`      // Used space in bytes
-	UsagePercent   *float64 `json:"usage_percent"`   // Usage Percent
+	// RAM statistics
+	TotalBytes     uint64   `json:"total_bytes"`
+	AvailableBytes uint64   `json:"available_bytes"`
+	UsedBytes      uint64   `json:"used_bytes"`
+	FreeBytes      uint64   `json:"free_bytes"`
+	UsagePercent   *float64 `json:"usage_percent"`
+	// Detailed RAM statistics
+	BufferedBytes uint64 `json:"buffered_bytes"`
+	CachedBytes   uint64 `json:"cached_bytes"`
+	SharedBytes   uint64 `json:"shared_bytes"`
+	// Swap statistics
+	SwapTotal        uint64   `json:"swap_total"`
+	SwapFree         uint64   `json:"swap_free"`
+	SwapUsed         uint64   `json:"swap_used"`
+	SwapUsagePercent *float64 `json:"swap_usage_percent"`
 }
 
 func (m MemoryData) isMetric() {}
