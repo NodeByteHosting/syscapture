@@ -31,6 +31,9 @@ type NotificationsConfig struct {
 	MonitorMemory   bool    `yaml:"monitor_memory" env:"MONITOR_MEMORY"`
 	MonitorDisk     bool    `yaml:"monitor_disk" env:"MONITOR_DISK"`
 	Enabled         bool    `yaml:"enabled" env:"NOTIFICATIONS_ENABLED"`
+	EmbedTitle      string  `yaml:"embed_title" env:"EMBED_TITLE"`
+	EmbedColor      int     `yaml:"embed_color" env:"EMBED_COLOR"`
+	EmbedFooter     string  `yaml:"embed_footer" env:"EMBED_FOOTER"`
 }
 
 type Config struct {

@@ -1,0 +1,13 @@
+{
+    "name": "sample-plugin",
+    "version": "1.0.0",
+    "description": "A sample plugin demonstrating the plugin system",
+    "author": "SysCapture Team",
+    "enabled": true,
+    "dependencies": [],
+    "settings": {
+        "interval": "30s",
+        "maxRetries": 3,
+        "debugMode": false
+    }
+}
