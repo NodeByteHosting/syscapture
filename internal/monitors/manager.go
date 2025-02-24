@@ -37,18 +37,26 @@ type MonitorManager struct {
 }
 
 // NewMonitorManager creates a new monitor manager
-func NewMonitorManager(cfg *config.MonitorConfig, notifier *notify.Notifier, logger handler.Logger) *MonitorManager {
+func NewMonitorManager(cfg *config.MonitorConfig, notifier *notify.Notifier, logger handler.Logger) (*MonitorManager, error) {
+	if notifier == nil {
+		return nil, fmt.Errorf("notifier cannot be nil")
+	}
+
 	return &MonitorManager{
 		monitors: make(map[string]Monitor),
 		notifier: notifier,
 		config:   cfg,
 		logger:   logger.WithFields(handler.Fields{"component": "monitor_manager"}),
-	}
+	}, nil
 }
 
 // Initialize creates and configures all monitors
 func (mm *MonitorManager) Initialize() error {
 	mm.logger.Info("Initializing system monitors...")
+
+	if mm.notifier == nil {
+		return fmt.Errorf("monitor manager notifier is not initialized")
+	}
 
 	// CPU Monitor
 	if mm.config.CPU.Enabled {
@@ -83,11 +91,11 @@ func (mm *MonitorManager) Initialize() error {
 	// Network Monitor
 	if mm.config.Network.Enabled {
 		mm.logger.Debug("Initializing Network monitor (bandwidth threshold: %.2f%%, connections: %d)",
-			mm.config.Network.Threshold.Bandwidth,
-			mm.config.Network.Threshold.Connections,
+			mm.config.Network.Thresholds.BandwidthMBps,
+			mm.config.Network.Thresholds.Connections,
 		)
 		mm.monitors["network"] = NewNetworkMonitor(
-			mm.config.Network.Threshold,
+			NetworkThresholds(mm.config.Network.Thresholds),
 			mm.notifier,
 			mm.logger.WithFields(handler.Fields{"monitor": "network"}),
 		)
@@ -95,15 +103,22 @@ func (mm *MonitorManager) Initialize() error {
 
 	// DDOS Monitor
 	if mm.config.DDOS.Enabled {
-		mm.logger.Debug("Initializing DDOS monitor (rps: %d, connections: %d)",
+		mm.logger.Debug("Initializing DDOS monitor (RPS threshold: %d, Connections: %d)",
 			mm.config.DDOS.Threshold.RequestsPerSecond,
 			mm.config.DDOS.Threshold.ConcurrentConnections,
 		)
-		mm.monitors["ddos"] = NewDDOSMonitor(
+
+		monitor := NewDDOSMonitor(
 			mm.config.DDOS.Threshold,
 			mm.notifier,
 			mm.logger.WithFields(handler.Fields{"monitor": "ddos"}),
 		)
+
+		if monitor == nil {
+			return fmt.Errorf("failed to create DDOS monitor: initialization failed")
+		}
+
+		mm.monitors["ddos"] = monitor
 	}
 
 	activeMonitors := len(mm.monitors)

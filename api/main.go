@@ -33,19 +33,18 @@ var (
 func Register(router *gin.Engine, cfg *config.Config) {
 
 	base := router.Group("/")
-	api := router.Group("/api")
+	auth := middleware.NewAuthManager(&cfg.Security)
 
 	base.GET("/", Home)
 	base.GET("/health", HealthCheck)
 
-	authConfig := middleware.NewAuthConfig(cfg)
-	api.Use(middleware.AuthRequired(authConfig))
+	base.Use(auth.Authenticate())
 	{
-		api.GET("/metrics", GetAllMetrics)
-		api.GET("/metrics/cpu", MetricsCPU)
-		api.GET("/metrics/memory", MetricsMemory)
-		api.GET("/metrics/disk", MetricsDisk)
-		api.GET("/metrics/network", MetricsNetwork)
+		base.GET("/metrics", auth.RequireRole(middleware.RoleViewer), GetAllMetrics)
+		base.GET("/metrics/cpu", auth.RequireRole(middleware.RoleViewer), MetricsCPU)
+		base.GET("/metrics/memory", auth.RequireRole(middleware.RoleViewer), MetricsMemory)
+		base.GET("/metrics/disk", auth.RequireRole(middleware.RoleViewer), MetricsDisk)
+		base.GET("/metrics/network", auth.RequireRole(middleware.RoleViewer), MetricsNetwork)
 	}
 
 	// Set the custom 404 handler

@@ -13,15 +13,13 @@ import (
 // DiscordEmbed represents a Discord embed message structure
 type DiscordEmbed struct {
 	Title       string              `json:"title"`
+	URL         string              `json:"url,omitempty"`
 	Description string              `json:"description"`
 	Color       int                 `json:"color"`
-	Footer      *DiscordEmbedFooter `json:"footer,omitempty"`
 	Fields      []DiscordEmbedField `json:"fields,omitempty"`
+	Thumbnail   *DiscordEmbedImage  `json:"thumbnail,omitempty"`
+	Footer      *DiscordEmbedFooter `json:"footer,omitempty"`
 	Timestamp   string              `json:"timestamp"`
-}
-
-type DiscordEmbedFooter struct {
-	Text string `json:"text"`
 }
 
 type DiscordEmbedField struct {
@@ -30,22 +28,36 @@ type DiscordEmbedField struct {
 	Inline bool   `json:"inline,omitempty"`
 }
 
+type DiscordEmbedImage struct {
+	URL string `json:"url"`
+}
+
+// Update footer to support icon
+type DiscordEmbedFooter struct {
+	Text    string `json:"text"`
+	IconURL string `json:"icon_url,omitempty"`
+}
+
 // DiscordNotifier handles sending notifications to Discord
 type DiscordNotifier struct {
-	WebhookURL  string
-	EmbedTitle  string
-	EmbedColor  int
-	EmbedFooter string
-	client      *http.Client
+	WebhookURL   string
+	EmbedTitle   string
+	EmbedColor   int
+	EmbedFooter  string
+	FooterIcon   string
+	ThumbnailURL string
+	client       *http.Client
 }
 
 // NewDiscordNotifier creates a new DiscordNotifier instance
 func NewDiscordNotifier(cfg *config.NotificationsConfig) *DiscordNotifier {
 	return &DiscordNotifier{
-		WebhookURL:  cfg.Discord.Webhook,
-		EmbedTitle:  cfg.Discord.EmbedTitle,
-		EmbedColor:  cfg.Discord.EmbedColor,
-		EmbedFooter: cfg.Discord.EmbedFooter,
+		WebhookURL:   cfg.Discord.Webhook,
+		EmbedTitle:   cfg.Discord.EmbedTitle,
+		EmbedColor:   cfg.Discord.EmbedColor,
+		EmbedFooter:  cfg.Discord.EmbedFooter,
+		FooterIcon:   cfg.Discord.FooterIcon,
+		ThumbnailURL: cfg.Discord.ThumbnailURL,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -90,8 +102,12 @@ func (d *DiscordNotifier) SendWithFields(message string, fields map[string]strin
 		Title:       d.EmbedTitle,
 		Description: message,
 		Color:       d.EmbedColor,
+		Thumbnail: &DiscordEmbedImage{
+			URL: d.ThumbnailURL,
+		},
 		Footer: &DiscordEmbedFooter{
-			Text: d.EmbedFooter,
+			Text:    d.EmbedFooter,
+			IconURL: d.FooterIcon,
 		},
 		Fields:    embedFields,
 		Timestamp: time.Now().UTC().Format(time.RFC3339),

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/nodebytehosting/syscapture/internal/config"
+	"github.com/nodebytehosting/syscapture/internal/handler"
 	"github.com/nodebytehosting/syscapture/internal/notify/providers"
 )
 
@@ -29,7 +30,7 @@ type NotificationOption struct {
 }
 
 // NewNotifier creates a new Notifier instance
-func NewNotifier(cfg *config.NotificationsConfig) *Notifier {
+func NewNotifier(cfg *config.NotificationsConfig, logger handler.Logger) (*Notifier, error) {
 	n := &Notifier{
 		config:  cfg,
 		enabled: cfg.Enabled,
@@ -46,7 +47,7 @@ func NewNotifier(cfg *config.NotificationsConfig) *Notifier {
 		n.slackNotifier = providers.NewSlackNotifier(cfg)
 	}
 
-	return n
+	return n, nil
 }
 
 // SendNotification sends a notification through the specified provider

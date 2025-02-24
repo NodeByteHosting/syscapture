@@ -49,14 +49,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize notifications first
+	if err := initializeNotifications(); err != nil {
+		logger.Error("Failed to initialize notifications: %v", err)
+		os.Exit(1)
+	}
+
 	// Initialize and load plugins
 	if err := initializePlugins(); err != nil {
 		logger.Error("Plugin initialization error: %v", err)
 		os.Exit(1)
 	}
 
-	// Initialize monitor manager
-	monitorManager := monitor.NewMonitorManager(&appConfig.Notifications.Monitors, notifier, logger)
+	// Initialize monitor manager with notifier
+	monitorManager, err := monitor.NewMonitorManager(&appConfig.Notifications.Monitors, notifier, logger)
+	if err != nil {
+		logger.Error("Failed to create monitor manager: %v", err)
+		os.Exit(1)
+	}
+
+	// Initialize monitors
 	if err := monitorManager.Initialize(); err != nil {
 		logger.Error("Failed to initialize monitors: %v", err)
 		os.Exit(1)
@@ -158,12 +170,22 @@ func initializePlugins() error {
 	return nil
 }
 
-func initializeNotifications() {
-	notifier = notify.NewNotifier(&appConfig.Notifications)
+func initializeNotifications() error {
+	// Check if appConfig is initialized
+	if appConfig == nil {
+		return fmt.Errorf("application configuration is not initialized")
+	}
+
+	var err error
+	notifier, err = notify.NewNotifier(&appConfig.Notifications, logger)
+	if err != nil {
+		return fmt.Errorf("failed to initialize notifier: %w", err)
+	}
 
 	if appConfig.Notifications.Enabled {
 		logger.Info("Notifications enabled")
 	}
+	return nil
 }
 
 func startServer() *http.Server {

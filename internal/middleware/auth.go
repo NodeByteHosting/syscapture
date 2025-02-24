@@ -1,7 +1,8 @@
 package middleware
 
 import (
-	"crypto/subtle"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"strings"
@@ -12,140 +13,168 @@ import (
 )
 
 var (
-	ErrMissingHeader = errors.New("missing authorization header")
-	ErrInvalidFormat = errors.New("invalid authorization header format")
-	ErrTokenRequired = errors.New("authorization token required")
-	ErrInvalidToken  = errors.New("invalid token provided")
-	ErrTokenExpired  = errors.New("token has expired")
+	ErrMissingAuth      = errors.New("missing authentication")
+	ErrInvalidAuth      = errors.New("invalid authentication")
+	ErrInsufficientRole = errors.New("insufficient permissions")
 )
 
-// AuthConfig holds configuration for the authentication middleware
+type Role string
+
+const (
+	RoleAdmin  Role = "admin"
+	RoleUser   Role = "user"
+	RoleViewer Role = "viewer"
+)
+
+type APIKey struct {
+	Key       string
+	Role      Role
+	Name      string
+	CreatedAt time.Time
+	ExpiresAt time.Time
+}
+
+type AuthManager struct {
+	keys       map[string]APIKey
+	config     *AuthConfig
+	hashSecret string
+}
+
 type AuthConfig struct {
-	Enabled         bool
-	Secret          string
-	TokenExpiration time.Duration
-	SkipPaths       []string
-	AllowedHeaders  []string
-	RateLimit       int
+	Enabled        bool
+	HashSecret     string
+	DefaultRole    Role
+	SkipPaths      []string
+	AllowedHeaders []string
+	RateLimit      RateLimitConfig
 }
 
-// DefaultAuthConfig returns default authentication configuration
-func DefaultAuthConfig() *AuthConfig {
-	return &AuthConfig{
-		Enabled:         true,
-		TokenExpiration: 24 * time.Hour,
-		RateLimit:       60,
-		AllowedHeaders:  []string{"Authorization", "Content-Type"},
+type RateLimitConfig struct {
+	Enabled bool
+	Limit   int
+	Window  time.Duration
+}
+
+func NewAuthManager(cfg *config.SecurityConfig) *AuthManager {
+	return &AuthManager{
+		keys:       make(map[string]APIKey),
+		hashSecret: cfg.Auth.Secret,
+		config: &AuthConfig{
+			Enabled:        cfg.Auth.Enabled,
+			DefaultRole:    Role(cfg.Auth.DefaultRole),
+			SkipPaths:      cfg.Auth.SkipPaths,
+			AllowedHeaders: cfg.Auth.AllowedHeaders,
+			RateLimit: RateLimitConfig{
+				Enabled: cfg.Auth.RateLimit.Enabled,
+				Limit:   cfg.Auth.RateLimit.Limit,
+				Window:  cfg.Auth.RateLimit.Window,
+			},
+		},
 	}
 }
 
-// NewAuthConfig creates AuthConfig from application config
-func NewAuthConfig(cfg *config.Config) *AuthConfig {
-	return &AuthConfig{
-		Enabled:         cfg.Security.Auth.Enabled,
-		Secret:          cfg.Security.Auth.Secret,
-		TokenExpiration: cfg.Security.Auth.TokenExpiry,
-		SkipPaths:       cfg.Security.Auth.SkipPaths,
-		AllowedHeaders:  cfg.Security.Auth.AllowedHeaders,
-		RateLimit:       cfg.Security.Auth.RateLimit.Limit,
+func (am *AuthManager) GenerateAPIKey(name string, role Role, expires time.Duration) (string, error) {
+	if !am.config.Enabled {
+		return "", errors.New("authentication is disabled")
 	}
+
+	// Generate unique key using hash
+	hash := sha256.New()
+	hash.Write([]byte(name))
+	hash.Write([]byte(time.Now().String()))
+	hash.Write([]byte(am.hashSecret))
+	apiKey := hex.EncodeToString(hash.Sum(nil))
+
+	// Store key
+	am.keys[apiKey] = APIKey{
+		Key:       apiKey,
+		Role:      role,
+		Name:      name,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(expires),
+	}
+
+	return apiKey, nil
 }
 
-// AuthRequired is a middleware function that checks for a valid Bearer token
-func AuthRequired(config *AuthConfig) gin.HandlerFunc {
-	if config == nil {
-		config = DefaultAuthConfig()
-	}
-
+func (am *AuthManager) Authenticate() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Log authentication status for debugging
-		c.Set("auth_config", config)
-
-		// If auth is not enabled, skip authentication
-		if !config.Enabled {
-			c.Set("auth_disabled", true)
+		if !am.config.Enabled {
 			c.Next()
 			return
 		}
 
 		// Skip authentication for specified paths
-		for _, path := range config.SkipPaths {
+		for _, path := range am.config.SkipPaths {
 			if strings.HasPrefix(c.Request.URL.Path, path) {
-				c.Set("auth_skipped", true)
 				c.Next()
 				return
 			}
 		}
 
-		// Extract and validate token
-		token, err := extractToken(c)
-		if err != nil {
-			handleAuthError(c, err)
+		// Get API key from header or query
+		apiKey := c.GetHeader("X-API-Key")
+		if apiKey == "" {
+			apiKey = c.Query("api_key")
+		}
+
+		if apiKey == "" {
+			handleAuthError(c, ErrMissingAuth)
 			return
 		}
 
-		// Check if secret is configured
-		if config.Secret == "" {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Authentication secret not configured",
-				"code":  http.StatusInternalServerError,
-			})
-			c.Abort()
+		// Validate API key
+		key, exists := am.keys[apiKey]
+		if !exists {
+			handleAuthError(c, ErrInvalidAuth)
 			return
 		}
 
-		// Constant-time comparison to prevent timing attacks
-		if subtle.ConstantTimeCompare([]byte(token), []byte(config.Secret)) != 1 {
-			handleAuthError(c, ErrInvalidToken)
+		// Check expiration
+		if time.Now().After(key.ExpiresAt) {
+			handleAuthError(c, errors.New("api key expired"))
 			return
 		}
 
-		// Store authentication info in context
-		c.Set("authenticated", true)
-		c.Set("auth_time", time.Now().UTC())
+		// Store auth info in context
+		c.Set("api_key", key)
+		c.Set("role", key.Role)
+		c.Set("user", key.Name)
 
 		c.Next()
 	}
 }
 
-// extractToken extracts the Bearer token from the Authorization header
-func extractToken(c *gin.Context) (string, error) {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		return "", ErrMissingHeader
-	}
+// RequireRole middleware checks if authenticated user has required role
+func (am *AuthManager) RequireRole(role Role) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userRole, exists := c.Get("role")
+		if !exists {
+			handleAuthError(c, ErrInsufficientRole)
+			return
+		}
 
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "", ErrInvalidFormat
-	}
+		if userRole != role && userRole != RoleAdmin {
+			handleAuthError(c, ErrInsufficientRole)
+			return
+		}
 
-	token := strings.TrimSpace(parts[1])
-	if token == "" {
-		return "", ErrTokenRequired
+		c.Next()
 	}
-
-	return token, nil
 }
 
-// handleAuthError handles authentication errors with appropriate responses
 func handleAuthError(c *gin.Context, err error) {
-	var status int
-	var message string
+	status := http.StatusUnauthorized
+	message := "Authentication failed"
 
 	switch err {
-	case ErrMissingHeader, ErrInvalidFormat, ErrTokenRequired:
-		status = http.StatusUnauthorized
+	case ErrMissingAuth:
 		message = "Authentication required"
-	case ErrInvalidToken:
+	case ErrInvalidAuth:
+		message = "Invalid API key"
+	case ErrInsufficientRole:
 		status = http.StatusForbidden
-		message = "Invalid authentication token"
-	case ErrTokenExpired:
-		status = http.StatusUnauthorized
-		message = "Token has expired"
-	default:
-		status = http.StatusInternalServerError
-		message = "Authentication error"
+		message = "Insufficient permissions"
 	}
 
 	c.JSON(status, gin.H{

@@ -30,14 +30,22 @@ type SecurityConfig struct {
 	Auth AuthConfig `yaml:"auth"`
 }
 
-// Update the AuthConfig struct to match YAML structure
+// Update AuthConfig struct to include role-based settings
 type AuthConfig struct {
 	Enabled        bool            `yaml:"enabled" env:"AUTH_ENABLED"`
 	Secret         string          `yaml:"secret" env:"AUTH_SECRET"`
 	TokenExpiry    time.Duration   `yaml:"token_expiry" env:"AUTH_TOKEN_EXPIRY"`
+	DefaultRole    string          `yaml:"default_role" env:"AUTH_DEFAULT_ROLE"`
 	RateLimit      RateLimitConfig `yaml:"rate_limit"`
 	AllowedHeaders []string        `yaml:"allowed_headers"`
 	SkipPaths      []string        `yaml:"skip_paths"`
+	Roles          []RoleConfig    `yaml:"roles"`
+}
+
+// Add new RoleConfig struct
+type RoleConfig struct {
+	Name        string   `yaml:"name"`
+	Permissions []string `yaml:"permissions"`
 }
 
 type RateLimitConfig struct {
@@ -67,12 +75,13 @@ type NotificationsConfig struct {
 }
 
 type DiscordConfig struct {
-	Webhook     string `yaml:"webhook" env:"DISCORD_WEBHOOK"`
-	EmbedTitle  string `yaml:"embed_title"`
-	EmbedColor  int    `yaml:"embed_color"`
-	EmbedFooter string `yaml:"embed_footer"`
+	Webhook      string `yaml:"webhook" env:"DISCORD_WEBHOOK"`
+	EmbedTitle   string `yaml:"embed_title"`
+	EmbedColor   int    `yaml:"embed_color"`
+	EmbedFooter  string `yaml:"embed_footer"`
+	FooterIcon   string `yaml:"footer_icon"`
+	ThumbnailURL string `yaml:"thumbnail_url"`
 }
-
 type EmailConfig struct {
 	Provider      string     `yaml:"provider" env:"EMAIL_PROVIDER"`
 	From          string     `yaml:"from" env:"EMAIL_FROM"`
@@ -110,15 +119,15 @@ type MonitorThreshold struct {
 }
 
 type NetworkMonitor struct {
-	Enabled   bool             `yaml:"enabled"`
-	Threshold NetworkThreshold `yaml:"threshold"`
-	Interval  time.Duration    `yaml:"interval"`
-	Cooldown  time.Duration    `yaml:"cooldown"`
+	Enabled    bool              `yaml:"enabled"`
+	Thresholds NetworkThresholds `yaml:"thresholds"`
+	Interval   time.Duration     `yaml:"interval"`
+	Cooldown   time.Duration     `yaml:"cooldown"`
 }
 
-type NetworkThreshold struct {
-	Bandwidth   float64 `yaml:"bandwidth"`
-	Connections int     `yaml:"connections"`
+type NetworkThresholds struct {
+	BandwidthMBps float64 `yaml:"bandwidth_mbps"`
+	Connections   uint64  `yaml:"connections"`
 }
 
 type DDOSMonitor struct {
@@ -144,17 +153,32 @@ security:
     enabled: true
     secret: ""
     token_expiry: 24h
+    default_role: "viewer"
     rate_limit:
       enabled: true
       limit: 60
       window: 1m
     allowed_headers:
-      - Authorization
+      - X-API-Key
       - Content-Type
     skip_paths:
       - /health
       - /metrics
       - /docs
+    roles:
+      - name: admin
+        permissions:
+          - "*"
+      - name: user
+        permissions:
+          - "metrics:read"
+          - "metrics:write"
+          - "alerts:read"
+          - "alerts:write"
+      - name: viewer
+        permissions:
+          - "metrics:read"
+          - "alerts:read"
 
 logging:
   level: "info"
@@ -311,6 +335,33 @@ func validateConfig(config *Config) error {
 		return fmt.Errorf("auth secret is required when authentication is enabled")
 	}
 
+	if config.Security.Auth.Enabled {
+		if config.Security.Auth.Secret == "" {
+			return fmt.Errorf("auth secret is required when authentication is enabled")
+		}
+		if config.Security.Auth.DefaultRole == "" {
+			return fmt.Errorf("default role is required when authentication is enabled")
+		}
+
+		// Validate roles
+		validRoles := make(map[string]bool)
+		for _, role := range config.Security.Auth.Roles {
+			if role.Name == "" {
+				return fmt.Errorf("role name cannot be empty")
+			}
+			if len(role.Permissions) == 0 {
+				return fmt.Errorf("role %s must have at least one permission", role.Name)
+			}
+			validRoles[role.Name] = true
+		}
+
+		// Validate default role exists
+		if !validRoles[config.Security.Auth.DefaultRole] {
+			return fmt.Errorf("default role %s is not defined in roles configuration",
+				config.Security.Auth.DefaultRole)
+		}
+	}
+
 	if config.Notifications.Enabled {
 		if config.Notifications.Discord.Webhook == "" &&
 			config.Notifications.Slack.Webhook == "" &&
@@ -354,6 +405,11 @@ func loadEnvOverrides(config *Config) error {
 	if enabled := os.Getenv("AUTH_ENABLED"); enabled != "" {
 		config.Security.Auth.Enabled = enabled == "true"
 	}
+
+	if defaultRole := os.Getenv("AUTH_DEFAULT_ROLE"); defaultRole != "" {
+		config.Security.Auth.DefaultRole = defaultRole
+	}
+
 	if exp := os.Getenv("AUTH_TOKEN_EXPIRY"); exp != "" {
 		duration, err := time.ParseDuration(exp)
 		if err == nil {
