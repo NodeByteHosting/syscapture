@@ -33,9 +33,18 @@ var (
 func Register(router *gin.Engine, appConfig *config.Config) {
 
 	baseRouter := router.Group("/")
-	apiRouter := router.Group("/api")
 
-	apiRouter.Use(middleware.AuthRequired(appConfig.APISecret))
+	// Configure authentication if enabled
+	if appConfig.Security.Auth.Enabled {
+		authConfig := &middleware.AuthConfig{
+			Secret:          appConfig.Security.Auth.Secret,
+			SkipPaths:       appConfig.Security.Auth.SkipPaths,
+			TokenExpiration: appConfig.Security.Auth.TokenExpiry,
+			AllowedHeaders:  appConfig.Security.Auth.AllowedHeaders,
+			RateLimit:       appConfig.Security.Auth.RateLimit.Limit,
+		}
+		baseRouter.Use(middleware.AuthRequired(authConfig))
+	}
 
 	// Home endpoint
 	baseRouter.GET("/", Home)
@@ -44,22 +53,22 @@ func Register(router *gin.Engine, appConfig *config.Config) {
 	baseRouter.GET("/health", HealthCheck)
 
 	// Get all metrics endpoint
-	apiRouter.GET("/metrics", GetAllMetrics)
+	baseRouter.GET("/metrics", GetAllMetrics)
 
 	// Get cpu metrics endpoint
-	apiRouter.GET("/metrics/cpu", MetricsCPU)
+	baseRouter.GET("/metrics/cpu", MetricsCPU)
 
 	// Get disk metrics endpoint
-	apiRouter.GET("/metrics/disk", MetricsDisk)
+	baseRouter.GET("/metrics/disk", MetricsDisk)
 
 	// Get host metrics endpoint
-	apiRouter.GET("/metrics/host", MetricsHost)
+	baseRouter.GET("/metrics/host", MetricsHost)
 
 	// Get memory metrics endpoint
-	apiRouter.GET("/metrics/memory", MetricsMemory)
+	baseRouter.GET("/metrics/memory", MetricsMemory)
 
 	// Get network metrics endpoint
-	apiRouter.GET("/metrics/network", MetricsNetwork)
+	baseRouter.GET("/metrics/network", MetricsNetwork)
 
 	// Set the custom 404 handler
 	router.NoRoute(NotFound)

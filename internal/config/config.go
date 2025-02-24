@@ -1,198 +1,276 @@
 package config
 
 import (
-	"encoding/json"
-	"log"
+	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/nodebytehosting/syscapture/internal/handler"
 	"gopkg.in/yaml.v3"
 )
 
-type NotificationsConfig struct {
-	Provider        string  `yaml:"provider" env:"NOTIFICATIONS_PROVIDER"`
-	DiscordWebhook  string  `yaml:"discord_webhook" env:"DISCORD_WEBHOOK"`
-	SlackWebhook    string  `yaml:"slack_webhook" env:"SLACK_WEBHOOK"`
-	EmailProvider   string  `yaml:"email_provider" env:"EMAIL_PROVIDER"`
-	EmailFrom       string  `yaml:"email_from" env:"EMAIL_FROM"`
-	EmailTo         string  `yaml:"email_to" env:"EMAIL_TO"`
-	PostmarkToken   string  `yaml:"postmark_token" env:"POSTMARK_TOKEN"`
-	ResendAPIKey    string  `yaml:"resend_api_key" env:"RESEND_API_KEY"`
-	SendgridKey     string  `yaml:"sendgrid_key" env:"SENDGRID_KEY"`
-	SMTPHost        string  `yaml:"smtp_host" env:"SMTP_HOST"`
-	SMTPPort        string  `yaml:"smtp_port" env:"SMTP_PORT"`
-	SMTPUsername    string  `yaml:"smtp_username" env:"SMTP_USERNAME"`
-	SMTPPassword    string  `yaml:"smtp_password" env:"SMTP_PASSWORD"`
-	CPUThreshold    float64 `yaml:"cpu_threshold" env:"CPU_THRESHOLD"`
-	MemoryThreshold float64 `yaml:"memory_threshold" env:"MEMORY_THRESHOLD"`
-	DiskThreshold   float64 `yaml:"disk_threshold" env:"DISK_THRESHOLD"`
-	MonitorCPU      bool    `yaml:"monitor_cpu" env:"MONITOR_CPU"`
-	MonitorMemory   bool    `yaml:"monitor_memory" env:"MONITOR_MEMORY"`
-	MonitorDisk     bool    `yaml:"monitor_disk" env:"MONITOR_DISK"`
-	Enabled         bool    `yaml:"enabled" env:"NOTIFICATIONS_ENABLED"`
-	EmbedTitle      string  `yaml:"embed_title" env:"EMBED_TITLE"`
-	EmbedColor      int     `yaml:"embed_color" env:"EMBED_COLOR"`
-	EmbedFooter     string  `yaml:"embed_footer" env:"EMBED_FOOTER"`
-}
-
+// Config represents the main application configuration
 type Config struct {
-	Port          string              `yaml:"port" env:"PORT"`
-	APISecret     string              `yaml:"api_secret" env:"API_SECRET"`
-	GinMode       string              `yaml:"gin_mode" env:"GIN_MODE"`
+	Server        ServerConfig        `yaml:"server"`
+	Security      SecurityConfig      `yaml:"security"`
+	Logging       LogConfig           `yaml:"logging"`
+	API           APIConfig           `yaml:"api"`
 	Notifications NotificationsConfig `yaml:"notifications"`
 }
 
-const defaultPort = "42000"
-
-// NewConfig initializes a new Config struct with the provided values
-func NewConfig(port string, apiSecret string, ginMode string, logger handler.Logger) *Config {
-	if port == "" {
-		port = defaultPort
-		logger.Warn("Missing PORT environment variable, using default value: %s", defaultPort)
-	}
-
-	// Validate required fields
-	if apiSecret == "" {
-		logger.Error("Missing API_SECRET environment variable. Exiting...")
-		os.Exit(1)
-	}
-
-	if ginMode == "" {
-		ginMode = "release"
-		logger.Warn("Missing GIN_MODE environment variable, using default value: release")
-		logger.Info("You can set GIN_MODE to '%s' in the env to enable verbose logging", "debug")
-		os.Setenv("GIN_MODE", ginMode)
-	}
-
-	return &Config{
-		Port:      port,
-		APISecret: apiSecret,
-		GinMode:   ginMode,
-	}
+type ServerConfig struct {
+	Port        string `yaml:"port" env:"PORT"`
+	Environment string `yaml:"environment" env:"ENV"`
+	BaseURL     string `yaml:"base_url" env:"BASE_URL"`
 }
 
-// Default returns a Config struct with default values
-func Default() *Config {
-	return &Config{
-		Port:      defaultPort,
-		APISecret: "",
-	}
+type SecurityConfig struct {
+	Auth AuthConfig `yaml:"auth"`
 }
 
-// LoadConfig loads the configuration from both .env and YAML files
+type AuthConfig struct {
+	Enabled        bool            `yaml:"enabled" env:"AUTH_ENABLED"`
+	Secret         string          `yaml:"secret" env:"AUTH_SECRET"`
+	TokenExpiry    time.Duration   `yaml:"token_expiry" env:"AUTH_TOKEN_EXPIRY"`
+	RateLimit      RateLimitConfig `yaml:"rate_limit"`
+	AllowedHeaders []string        `yaml:"allowed_headers"`
+	SkipPaths      []string        `yaml:"skip_paths"`
+}
+
+type RateLimitConfig struct {
+	Enabled bool          `yaml:"enabled" env:"RATE_LIMIT_ENABLED"`
+	Limit   int           `yaml:"limit" env:"RATE_LIMIT"`
+	Window  time.Duration `yaml:"window" env:"RATE_LIMIT_WINDOW"`
+}
+
+type LogConfig struct {
+	Level      string `yaml:"level" env:"LOG_LEVEL"`
+	Format     string `yaml:"format" env:"LOG_FORMAT"`
+	TimeFormat string `yaml:"time_format"`
+	Output     string `yaml:"output" env:"LOG_OUTPUT"`
+}
+
+type APIConfig struct {
+	Version string `yaml:"version"`
+	Docs    bool   `yaml:"docs" env:"API_DOCS_ENABLED"`
+}
+
+type NotificationsConfig struct {
+	Discord  DiscordConfig `yaml:"discord"`
+	Email    EmailConfig   `yaml:"email"`
+	Slack    SlackConfig   `yaml:"slack"`
+	Monitors MonitorConfig `yaml:"monitors"`
+	Enabled  bool          `yaml:"enabled" env:"NOTIFICATIONS_ENABLED"`
+}
+
+type DiscordConfig struct {
+	Webhook     string `yaml:"webhook" env:"DISCORD_WEBHOOK"`
+	EmbedTitle  string `yaml:"embed_title"`
+	EmbedColor  int    `yaml:"embed_color"`
+	EmbedFooter string `yaml:"embed_footer"`
+}
+
+type EmailConfig struct {
+	Provider      string     `yaml:"provider" env:"EMAIL_PROVIDER"`
+	From          string     `yaml:"from" env:"EMAIL_FROM"`
+	To            string     `yaml:"to" env:"EMAIL_TO"`
+	PostmarkToken string     `yaml:"postmark_token" env:"POSTMARK_TOKEN"`
+	ResendAPIKey  string     `yaml:"resend_api_key" env:"RESEND_API_KEY"`
+	SendgridKey   string     `yaml:"sendgrid_key" env:"SENDGRID_KEY"`
+	SMTP          SMTPConfig `yaml:"smtp"`
+}
+
+type SMTPConfig struct {
+	Host     string `yaml:"host" env:"SMTP_HOST"`
+	Port     string `yaml:"port" env:"SMTP_PORT"`
+	Username string `yaml:"username" env:"SMTP_USERNAME"`
+	Password string `yaml:"password" env:"SMTP_PASSWORD"`
+}
+
+type SlackConfig struct {
+	Webhook string `yaml:"webhook" env:"SLACK_WEBHOOK"`
+}
+
+type MonitorConfig struct {
+	CPU    MonitorThreshold `yaml:"cpu"`
+	Memory MonitorThreshold `yaml:"memory"`
+	Disk   MonitorThreshold `yaml:"disk"`
+}
+
+type MonitorThreshold struct {
+	Enabled   bool    `yaml:"enabled"`
+	Threshold float64 `yaml:"threshold"`
+}
+
+const defaultConfig = `
+server:
+  port: "42000"
+  environment: "production"
+  base_url: "http://localhost:42000"
+
+security:
+  auth:
+    enabled: true
+    secret: ""
+    token_expiry: 24h
+    rate_limit:
+      enabled: true
+      limit: 60
+      window: 1m
+    allowed_headers:
+      - Authorization
+      - Content-Type
+    skip_paths:
+      - /health
+      - /metrics
+      - /docs
+
+logging:
+  level: "info"
+  format: "text"
+  time_format: "2006-01-02T15:04:05Z07:00"
+  output: "stdout"
+
+api:
+  version: "0.2.0"
+  docs: true
+
+notifications:
+  enabled: false
+  discord:
+    webhook: ""
+    embed_title: "SysCapture Alert"
+    embed_color: 16711680
+    embed_footer: "Powered by SysCapture"
+  slack:
+    webhook: ""
+  email:
+    provider: ""
+    from: ""
+    to: ""
+    smtp:
+      host: ""
+      port: ""
+      username: ""
+      password: ""
+  monitors:
+    cpu:
+      enabled: true
+      threshold: 80
+    memory:
+      enabled: true
+      threshold: 80
+    disk:
+      enabled: true
+      threshold: 80
+`
+
+// LoadConfig loads the configuration from files and environment
 func LoadConfig(yamlFile string, envFile string, logger handler.Logger) (*Config, error) {
-	// Load environment variables from the specified .env file if provided
+	// Load default configuration
+	config := &Config{}
+	if err := yaml.Unmarshal([]byte(defaultConfig), config); err != nil {
+		return nil, fmt.Errorf("failed to load default config: %w", err)
+	}
+
+	// Load .env file if specified
 	if envFile != "" {
 		if err := godotenv.Load(envFile); err != nil {
-			logger.Warn("No .env file found, proceeding with defaults.")
+			logger.Warn("No .env file found at %s", envFile)
 		} else {
 			logger.Info("Loaded environment variables from %s", envFile)
 		}
-	} else {
-		if err := godotenv.Load(); err != nil {
-			logger.Warn("No .env file found, proceeding with defaults.")
+	}
+
+	// Load YAML configuration if exists
+	if yamlFile != "" {
+		data, err := os.ReadFile(yamlFile)
+		if err != nil {
+			logger.Warn("No config file found at %s", yamlFile)
 		} else {
-			logger.Info("Loaded environment variables from default .env")
+			if err := yaml.Unmarshal(data, config); err != nil {
+				return nil, fmt.Errorf("failed to parse config file: %w", err)
+			}
+			logger.Info("Loaded configuration from %s", yamlFile)
 		}
 	}
 
-	// Load YAML configuration
-	file, err := os.Open(yamlFile)
-	if err != nil {
-		logger.Error("Error opening YAML config file: %v", err)
-		return nil, err
-	}
-	defer file.Close()
-
-	var config Config
-	decoder := yaml.NewDecoder(file)
-	if err := decoder.Decode(&config); err != nil {
-		logger.Error("Error decoding YAML config: %v", err)
-		return nil, err
+	// Apply environment variable overrides
+	if err := loadEnvOverrides(config); err != nil {
+		return nil, fmt.Errorf("failed to apply environment overrides: %w", err)
 	}
 
-	logger.Info("Loaded configuration from %s", yamlFile)
 	logger.Info("Configuration loaded successfully")
+	return config, nil
+}
 
-	// Override with environment variables if they exist
-	if envEnabled := os.Getenv("NOTIFICATIONS_ENABLED"); envEnabled != "" {
-		config.Notifications.Enabled = envEnabled == "true"
+// loadEnvOverrides applies environment variable overrides to the config
+func loadEnvOverrides(config *Config) error {
+	// Server
+	if port := os.Getenv("PORT"); port != "" {
+		config.Server.Port = port
 	}
-	if envWebhook := os.Getenv("DISCORD_WEBHOOK"); envWebhook != "" {
-		config.Notifications.DiscordWebhook = envWebhook
-	}
-	if envProvider := os.Getenv("NOTIFICATIONS_PROVIDER"); envProvider != "" {
-		config.Notifications.Provider = envProvider
-	}
-	if envSlackWebhook := os.Getenv("SLACK_WEBHOOK"); envSlackWebhook != "" {
-		config.Notifications.SlackWebhook = envSlackWebhook
-	}
-	if envEmailProvider := os.Getenv("EMAIL_PROVIDER"); envEmailProvider != "" {
-		config.Notifications.EmailProvider = envEmailProvider
-	}
-	if envEmailFrom := os.Getenv("EMAIL_FROM"); envEmailFrom != "" {
-		config.Notifications.EmailFrom = envEmailFrom
-	}
-	if envEmailTo := os.Getenv("EMAIL_TO"); envEmailTo != "" {
-		config.Notifications.EmailTo = envEmailTo
-	}
-	if envPostmarkToken := os.Getenv("POSTMARK_TOKEN"); envPostmarkToken != "" {
-		config.Notifications.PostmarkToken = envPostmarkToken
-	}
-	if envSendgridKey := os.Getenv("SENDGRID_KEY"); envSendgridKey != "" {
-		config.Notifications.SendgridKey = envSendgridKey
-	}
-	if envSMTPHost := os.Getenv("SMTP_HOST"); envSMTPHost != "" {
-		config.Notifications.SMTPHost = envSMTPHost
-	}
-	if envSMTPPort := os.Getenv("SMTP_PORT"); envSMTPPort != "" {
-		config.Notifications.SMTPPort = envSMTPPort
-	}
-	if envSMTPUsername := os.Getenv("SMTP_USERNAME"); envSMTPUsername != "" {
-		config.Notifications.SMTPUsername = envSMTPUsername
-	}
-	if envSMTPPassword := os.Getenv("SMTP_PASSWORD"); envSMTPPassword != "" {
-		config.Notifications.SMTPPassword = envSMTPPassword
-	}
-	if envCPUThreshold := os.Getenv("CPU_THRESHOLD"); envCPUThreshold != "" {
-		var cpuThreshold float64
-		err := json.Unmarshal([]byte(envCPUThreshold), &cpuThreshold)
-		if err != nil {
-			log.Println("Failed to unmarshal CPU_THRESHOLD environment variable")
-		} else {
-			config.Notifications.CPUThreshold = cpuThreshold
-		}
-	}
-	if envMemoryThreshold := os.Getenv("MEMORY_THRESHOLD"); envMemoryThreshold != "" {
-		var memoryThreshold float64
-		err := json.Unmarshal([]byte(envMemoryThreshold), &memoryThreshold)
-		if err != nil {
-			log.Println("Failed to unmarshal MEMORY_THRESHOLD environment variable")
-		} else {
-			config.Notifications.MemoryThreshold = memoryThreshold
-		}
-	}
-	if envDiskThreshold := os.Getenv("DISK_THRESHOLD"); envDiskThreshold != "" {
-		var diskThreshold float64
-		err := json.Unmarshal([]byte(envDiskThreshold), &diskThreshold)
-		if err != nil {
-			log.Println("Failed to unmarshal DISK_THRESHOLD environment variable")
-		} else {
-			config.Notifications.DiskThreshold = diskThreshold
-		}
-	}
-	if envMonitorCPU := os.Getenv("MONITOR_CPU"); envMonitorCPU != "" {
-		config.Notifications.MonitorCPU = envMonitorCPU == "true"
-	}
-	if envMonitorMemory := os.Getenv("MONITOR_MEMORY"); envMonitorMemory != "" {
-		config.Notifications.MonitorMemory = envMonitorMemory == "true"
-	}
-	if envMonitorDisk := os.Getenv("MONITOR_DISK"); envMonitorDisk != "" {
-		config.Notifications.MonitorDisk = envMonitorDisk == "true"
+	if env := os.Getenv("ENV"); env != "" {
+		config.Server.Environment = env
 	}
 
-	logger.Info("Configuration overrides applied successfully")
+	// Security
+	if secret := os.Getenv("AUTH_SECRET"); secret != "" {
+		config.Security.Auth.Secret = secret
+	}
+	if enabled := os.Getenv("AUTH_ENABLED"); enabled != "" {
+		config.Security.Auth.Enabled = enabled == "true"
+	}
+	if exp := os.Getenv("AUTH_TOKEN_EXPIRY"); exp != "" {
+		duration, err := time.ParseDuration(exp)
+		if err == nil {
+			config.Security.Auth.TokenExpiry = duration
+		}
+	}
 
-	return &config, nil
+	// Rate Limit
+	if limit := os.Getenv("RATE_LIMIT"); limit != "" {
+		if l, err := strconv.Atoi(limit); err == nil {
+			config.Security.Auth.RateLimit.Limit = l
+		}
+	}
+
+	// Logging
+	if level := os.Getenv("LOG_LEVEL"); level != "" {
+		config.Logging.Level = level
+	}
+
+	// Notifications
+	if enabled := os.Getenv("NOTIFICATIONS_ENABLED"); enabled != "" {
+		config.Notifications.Enabled = enabled == "true"
+	}
+	if webhook := os.Getenv("DISCORD_WEBHOOK"); webhook != "" {
+		config.Notifications.Discord.Webhook = webhook
+	}
+	if webhook := os.Getenv("SLACK_WEBHOOK"); webhook != "" {
+		config.Notifications.Slack.Webhook = webhook
+	}
+
+	// Email
+	if provider := os.Getenv("EMAIL_PROVIDER"); provider != "" {
+		config.Notifications.Email.Provider = provider
+	}
+	if from := os.Getenv("EMAIL_FROM"); from != "" {
+		config.Notifications.Email.From = from
+	}
+	if to := os.Getenv("EMAIL_TO"); to != "" {
+		config.Notifications.Email.To = to
+	}
+
+	// SMTP
+	if host := os.Getenv("SMTP_HOST"); host != "" {
+		config.Notifications.Email.SMTP.Host = host
+	}
+	if port := os.Getenv("SMTP_PORT"); port != "" {
+		config.Notifications.Email.SMTP.Port = port
+	}
+
+	return nil
 }

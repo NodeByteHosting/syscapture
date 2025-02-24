@@ -76,8 +76,8 @@ func setup() error {
 	// Log startup information
 	logger.Info("SysCapture v%s starting up...", Version)
 	logger.Info("Configuration loaded successfully")
-	logger.Info("  Port: %s", appConfig.Port)
-	logger.Info("  Environment: %s", appConfig.GinMode)
+	logger.Info("  Port: %s", appConfig.Server.Port)
+	logger.Info("  Environment: %s", appConfig.Server.Environment)
 
 	return nil
 }
@@ -119,7 +119,7 @@ func initializeNotifications() {
 	notifier = notify.NewNotifier(&appConfig.Notifications)
 
 	if appConfig.Notifications.Enabled {
-		logger.Info("Notifications enabled using %s provider", appConfig.Notifications.Provider)
+		logger.Info("Notifications enabled")
 		if err := notifier.SendNotification("SysCapture started successfully", "system"); err != nil {
 			logger.Error("Failed to send startup notification: %v", err)
 		}
@@ -131,7 +131,7 @@ func startServer() *http.Server {
 	r := initRouter()
 
 	server := &http.Server{
-		Addr:              ":" + appConfig.Port,
+		Addr:              ":" + appConfig.Server.Port,
 		Handler:           r,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
@@ -140,7 +140,7 @@ func startServer() *http.Server {
 	}
 
 	go func() {
-		logger.Info("Starting HTTP server on port %s", appConfig.Port)
+		logger.Info("Starting HTTP server on port %s", appConfig.Server.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("Server listen error: %v", err)
 			if appConfig.Notifications.Enabled {
@@ -153,7 +153,7 @@ func startServer() *http.Server {
 }
 
 func getGinMode() string {
-	if appConfig.GinMode == "production" {
+	if appConfig.Server.Environment == "production" {
 		return gin.ReleaseMode
 	}
 	return gin.DebugMode
@@ -169,7 +169,7 @@ func initRouter() *gin.Engine {
 	api.Register(r, appConfig)
 
 	// Swagger documentation
-	if appConfig.GinMode != "production" {
+	if appConfig.API.Docs {
 		r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
 			ginSwagger.DeepLinking(true),
 			ginSwagger.DocExpansion("none"),

@@ -1,0 +1,209 @@
+basePath: /api
+definitions:
+  api.CPUData:
+    properties:
+      current_frequency:
+        type: integer
+      frequency:
+        type: number
+      logical_core:
+        type: integer
+      physical_core:
+        type: integer
+    type: object
+  api.DiskData:
+    properties:
+      device:
+        type: string
+      free_bytes:
+        type: integer
+      total_bytes:
+        type: integer
+      usage_percent:
+        type: number
+    type: object
+  api.HealthCheckResponse:
+    properties:
+      message:
+        type: string
+      metrics:
+        $ref: '#/definitions/api.Metrics'
+      status:
+        type: string
+      version:
+        type: string
+    type: object
+  api.HostData:
+    properties:
+      kernel_version:
+        type: string
+      os:
+        type: string
+      platform:
+        type: string
+    type: object
+  api.MemoryData:
+    properties:
+      available_bytes:
+        type: integer
+      total_bytes:
+        type: integer
+      usage_percent:
+        type: number
+      used_bytes:
+        type: integer
+    type: object
+  api.Metrics:
+    properties:
+      ping:
+        type: string
+      timestamp:
+        type: string
+      uptime:
+        type: string
+    type: object
+  api.MetricsData:
+    properties:
+      cpu:
+        $ref: '#/definitions/api.CPUData'
+      disk:
+        $ref: '#/definitions/api.DiskData'
+      host:
+        $ref: '#/definitions/api.HostData'
+      memory:
+        $ref: '#/definitions/api.MemoryData'
+      network:
+        $ref: '#/definitions/api.NetworkData'
+    type: object
+  api.NetworkData:
+    properties:
+      bytes_recv:
+        type: integer
+      bytes_sent:
+        type: integer
+      packets_recv:
+        type: integer
+      packets_sent:
+        type: integer
+    type: object
+info:
+  contact:
+    name: NodeByte LTD
+    url: https://nodebyte.host
+  description: OpenAPI documentation for SysCapture API
+  license:
+    name: MIT License
+    url: https://opensource.org/license/mit
+  termsOfService: https://nodebyte.host/terms
+  title: SysCapture API
+  version: 0.2.0
+paths:
+  /health:
+    get:
+      description: View the health status of the service
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.HealthCheckResponse'
+      summary: Health Check
+      tags:
+      - health
+  /metrics:
+    get:
+      description: View a collection of all host system metrics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MetricsData'
+      security:
+      - bearerAuth: []
+      summary: Get all system metrics
+      tags:
+      - metrics
+  /metrics/cpu:
+    get:
+      description: View cpu usage and statistics of the host machine
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.CPUData'
+      security:
+      - bearerAuth: []
+      summary: Get cpu information
+      tags:
+      - metrics
+  /metrics/disk:
+    get:
+      description: View disk usage and statistics of the host machine
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.DiskData'
+      security:
+      - bearerAuth: []
+      summary: Get disk information
+      tags:
+      - metrics
+  /metrics/host:
+    get:
+      description: View some information about the host machine
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.HostData'
+      security:
+      - bearerAuth: []
+      summary: Get host information
+      tags:
+      - metrics
+  /metrics/memory:
+    get:
+      description: View memory usage and statistics of the host machine
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MemoryData'
+      security:
+      - bearerAuth: []
+      summary: Get memory information
+      tags:
+      - metrics
+  /metrics/network:
+    get:
+      description: View Network usage and statistics of the host machine
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.NetworkData'
+      security:
+      - bearerAuth: []
+      summary: Get Network Information
+      tags:
+      - metrics
+securityDefinitions:
+  bearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
